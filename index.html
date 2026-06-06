@@ -1,422 +1,565 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="ko">
 <head>
-  <meta charset="UTF-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-  <title>cnn기반 이미지분류 - 김민성</title>
-  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
-  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>CNN 기반 이미지 분류 - 김민성</title>
   <script src="./config.js"></script>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.20.0/dist/tf.min.js"></script>
   <style>
-    :root{--bg:#fff;--fg:#000;--line:#d8d8d8;--soft:#f7f7f7;--mark:#fff2a8;--bad:#fff0f0;--ok:#f3fff3;--radius:16px}
-    *{box-sizing:border-box}
-    body{margin:0;background:#fff;color:#000;font-family:Arial,"Noto Sans KR",sans-serif;line-height:1.5}
-    header{border-bottom:1px solid var(--line);padding:22px 24px;background:#fff;position:sticky;top:0;z-index:10}
-    h1{margin:0;font-size:26px;letter-spacing:-.04em} h2{margin:0 0 12px;font-size:20px;letter-spacing:-.03em} h3{margin:14px 0 8px;font-size:16px}
-    p{margin:7px 0}.sub{color:#444;font-size:14px}.small{font-size:12px;color:#444}.mono{font-family:Consolas,Menlo,monospace;white-space:pre-wrap;word-break:break-word;font-size:12px}
-    main{max-width:1360px;margin:0 auto;padding:22px}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}.tab-btn{border:1px solid #000;background:#fff;color:#000;border-radius:999px;padding:10px 14px;font-weight:800;cursor:pointer}.tab-btn.active{background:#000;color:#fff}.tab-btn.verify{background:var(--mark);border:3px solid #000;box-shadow:0 0 0 4px #fff}.tab-btn.verify.active{background:#000;color:#fff}
-    .tab{display:none}.tab.active{display:block}.grid{display:grid;grid-template-columns:410px 1fr;gap:18px}.two{display:grid;grid-template-columns:1fr 1fr;gap:18px}.three{display:grid;grid-template-columns:repeat(3,1fr);gap:18px}
-    .card{border:1px solid var(--line);border-radius:var(--radius);padding:18px;background:#fff;margin-bottom:18px}.soft{background:var(--soft)}.highlight{background:var(--mark);border:3px solid #000}.sticky{position:sticky;top:104px}
-    label{display:block;font-weight:800;font-size:13px;margin:10px 0 6px} input,select,button{font:inherit;color:#000} input,select{width:100%;border:1px solid var(--line);border-radius:10px;padding:10px;background:#fff}.row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
-    .btn{border:1px solid #000;background:#000;color:#fff;border-radius:12px;padding:12px 14px;font-weight:800;cursor:pointer}.btn.secondary{background:#fff;color:#000}.btn.big{font-size:19px;padding:18px;width:100%;border-width:3px}.btn.yellow{background:var(--mark);color:#000;border:3px solid #000}.btn:disabled{opacity:.45;cursor:not-allowed}
-    .progress-wrap{height:24px;border:1px solid #000;border-radius:999px;overflow:hidden;background:#fff}.progress-bar{height:100%;width:0%;background:#000;transition:width .18s}.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}.step{border:1px solid var(--line);border-radius:12px;padding:8px;font-size:12px;background:#fff;color:#444}.step.active{border-color:#000;background:var(--mark);color:#000;font-weight:800}.step.done{background:#000;color:#fff;border-color:#000}
-    table{width:100%;border-collapse:collapse;font-size:13px} th,td{border-bottom:1px solid #e8e8e8;text-align:left;padding:8px;vertical-align:top} th{background:#f7f7f7;position:sticky;top:0}.scroll{border:1px solid var(--line);border-radius:12px;overflow:auto;max-height:310px}
-    .thumbgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}.thumb{border:1px solid var(--line);border-radius:12px;padding:8px;background:#fff;text-align:center}.thumb img,.thumb canvas{width:100%;aspect-ratio:1/1;object-fit:contain;border:1px solid #eee;background:#fff}.thumb .cap{font-size:11px;color:#444;word-break:break-all;margin-top:5px}.thumb.selectable{cursor:pointer}.thumb.selected{outline:3px solid #000}
-    .log{height:220px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:10px;font-family:Consolas,Menlo,monospace;font-size:12px;white-space:pre-wrap}.barline{height:16px;border:1px solid #000;border-radius:999px;overflow:hidden;background:#fff}.barline span{display:block;height:100%;background:#000;width:0%}.result{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fff}.pill{display:inline-block;border:1px solid #000;border-radius:999px;padding:4px 8px;font-size:12px;margin:3px 4px 3px 0}
-    .workflow{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}.node{border:1px solid #000;border-radius:14px;padding:12px;background:#fff;min-height:120px}.node b{display:block}.tag{display:inline-block;border:1px solid #000;border-radius:999px;padding:2px 6px;font-size:11px;margin-top:6px}.formula{border:1px solid #000;border-radius:14px;background:#fff;padding:14px;min-height:140px}.status{border-left:4px solid #000;background:#f7f7f7;padding:10px 12px}.ok{background:var(--ok)}.bad{background:var(--bad)}
-    canvas.chart{width:100%;height:240px;border:1px solid var(--line);border-radius:14px;background:#fff}.divider{height:1px;background:#e7e7e7;margin:14px 0}
-    @media(max-width:950px){.grid,.two,.three{grid-template-columns:1fr}.steps{grid-template-columns:1fr 1fr}.sticky{position:static}}
+    :root{--bg:#fff;--fg:#000;--muted:#555;--line:#111;--soft:#f5f5f5;--warn:#fff3cd;--bad:#ffe1e1;--ok:#e8ffe8;--accent:#000}
+    *{box-sizing:border-box} body{margin:0;background:var(--bg);color:var(--fg);font-family:Arial,'Noto Sans KR',sans-serif;line-height:1.45} 
+    header{border-bottom:2px solid #000;padding:22px 28px;background:#fff;position:sticky;top:0;z-index:20}
+    h1{font-size:24px;margin:0 0 6px} h2{font-size:18px;margin:0 0 12px} h3{font-size:16px;margin:12px 0 8px}
+    p{margin:6px 0;color:#111}.wrap{max-width:1180px;margin:0 auto;padding:20px}.grid{display:grid;grid-template-columns:1fr 1fr;gap:16px}.card{border:2px solid #000;background:#fff;padding:16px;border-radius:12px;margin-bottom:16px}.card.soft{background:var(--soft)}
+    button{appearance:none;border:2px solid #000;background:#fff;color:#000;border-radius:10px;padding:12px 16px;font-size:15px;font-weight:700;cursor:pointer;margin:4px 6px 4px 0}button:hover{background:#000;color:#fff}button.primary{background:#000;color:#fff;font-size:18px;padding:16px 24px}button.primary:hover{background:#222}.danger{background:#fff0f0}.verifyTab{border:4px solid #000;background:#fffbcc;box-shadow:0 0 0 4px #fffbcc inset}
+    input,select{border:2px solid #000;background:#fff;color:#000;border-radius:8px;padding:10px;font-size:14px;width:100%;margin:4px 0 10px}.row{display:flex;gap:10px;align-items:center;flex-wrap:wrap}.row>*{flex:1}.status{padding:12px;border:2px solid #000;border-radius:10px;background:#fff;margin:8px 0;white-space:pre-wrap}.ok{background:var(--ok)}.bad{background:var(--bad)}.warn{background:var(--warn)}.small{font-size:13px;color:var(--muted)}
+    .progressWrap{border:2px solid #000;border-radius:12px;overflow:hidden;height:28px;background:#fff;margin:10px 0}.progress{height:100%;width:0;background:#000;transition:width .2s}.tabs{display:flex;gap:8px;flex-wrap:wrap;margin:12px 0}.tabBtn{font-size:14px;padding:10px 12px}.tabBtn.active{background:#000;color:#fff}.tab{display:none}.tab.active{display:block}
+    table{border-collapse:collapse;width:100%;font-size:13px;margin:8px 0}th,td{border:1px solid #000;padding:8px;text-align:left;vertical-align:top}th{background:#eee}.mono{font-family:Consolas,monospace;font-size:12px;word-break:break-all}.log{height:260px;overflow:auto;background:#fff;border:2px solid #000;border-radius:8px;padding:10px;font-family:Consolas,monospace;font-size:12px;white-space:pre-wrap}.imgGrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:10px}.thumb{border:1px solid #000;padding:6px;background:#fff}.thumb img{width:100%;aspect-ratio:1/1;object-fit:contain;background:#fff}.barRow{display:grid;grid-template-columns:130px 1fr 70px;gap:8px;align-items:center;margin:8px 0}.barBox{border:1px solid #000;height:22px}.barFill{height:100%;background:#000;width:0}.workflow{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px}.step{border:2px solid #000;border-radius:12px;padding:12px;background:#fff}.step strong{display:block;margin-bottom:6px}.formula{border:1px solid #000;background:#f7f7f7;padding:10px;border-radius:8px;overflow:auto;white-space:pre-wrap;font-family:Consolas,monospace;font-size:12px}.pill{display:inline-block;border:1px solid #000;border-radius:999px;padding:3px 8px;margin:2px;background:#fff}.hidden{display:none!important}
+    @media(max-width:850px){.grid{grid-template-columns:1fr}.barRow{grid-template-columns:1fr}.wrap{padding:12px}header{padding:16px}.primary{width:100%}}
   </style>
 </head>
 <body>
 <header>
-  <h1>cnn기반 이미지분류</h1>
-  <p class="sub">Supabase Storage의 apple/cherry 이미지로 CNN을 학습하고, test.jpg를 확률분포로 검증한다. 선생님은 첫 화면의 버튼 하나만 누르면 된다.</p>
+  <h1>CNN 기반 이미지 분류 프로그램</h1>
+  <p>Supabase Storage의 <b>cnn-images</b> bucket에서 apple/cherry/test.jpg와 저장 모델을 직접 불러오는 원버튼 사이트</p>
 </header>
-<main>
+<main class="wrap">
+  <section class="card verifyTab">
+    <h2>선생님용 원버튼 실행</h2>
+    <p>사이트가 열리면 아래 버튼 하나만 누르면 됨. 연결 확인, 이미지 로드, 학습, 검증까지 자동 진행.</p>
+    <button class="primary" id="runAllBtn">학습하고 검증하기</button>
+    <button id="loadSavedModelBtn">Supabase 저장 모델 불러와 바로 검증</button>
+    <button id="diagnoseBtn">연결 진단만 실행</button>
+    <div class="progressWrap"><div class="progress" id="progress"></div></div>
+    <div class="status" id="mainStatus">대기 중</div>
+  </section>
+
   <div class="tabs">
-    <button class="tab-btn active" data-tab="home">원버튼 실행</button>
-    <button class="tab-btn" data-tab="prep">사전작업</button>
-    <button class="tab-btn" data-tab="train">학습 기록</button>
-    <button class="tab-btn" data-tab="flow">모델 워크플로우</button>
-    <button class="tab-btn verify" data-tab="verify">이미지 검증</button>
-    <button class="tab-btn" data-tab="save">모델 저장</button>
-    <button class="tab-btn" data-tab="explain">설명</button>
+    <button class="tabBtn active" data-tab="diagnosis">연결 진단</button>
+    <button class="tabBtn" data-tab="prep">사전작업</button>
+    <button class="tabBtn" data-tab="train">학습</button>
+    <button class="tabBtn verifyTab" data-tab="test">이미지 검증</button>
+    <button class="tabBtn" data-tab="workflow">모델 워크플로우</button>
   </div>
 
-  <section id="home" class="tab active">
+  <section class="tab active" id="diagnosis">
     <div class="grid">
-      <div>
-        <div class="card highlight sticky">
-          <h2>선생님용 실행 버튼</h2>
-          <p>아래 버튼 하나로 전체 과정이 진행된다.</p>
-          <div class="mono" style="margin:10px 0">연결 확인 → 이미지 불러오기 → 형식 통일 → CNN 학습 → test.jpg 검증 → 확률분포 출력</div>
-          <button id="oneClickBtn" class="btn big yellow">학습하고 검증하기</button>
-          <button id="onlyVerifyBtn" class="btn secondary" style="width:100%;margin-top:8px">이미 학습된 모델로 test.jpg만 다시 검증</button>
-          <div class="divider"></div>
-          <div id="connectionStatus" class="status">config.js 연결 확인 전.</div>
-        </div>
-        <div class="card">
-          <h2>기본 데이터 경로</h2>
-          <div class="mono">bucket: cnn-images
-apple/apple1.jpg ~ apple20.jpg
-cherry/cherry1.jpg ~ cherry20.jpg
-test.jpg</div>
-        </div>
+      <div class="card">
+        <h2>현재 연결 설정</h2>
+        <div id="configBox" class="status"></div>
+        <h3>임시 설정 덮어쓰기</h3>
+        <p class="small">config.js가 Vercel에 제대로 안 올라갔을 때만 임시로 사용. 선생님용 최종본은 config.js가 정상이어야 함.</p>
+        <label>SUPABASE_URL</label><input id="manualUrl" placeholder="https://xxxx.supabase.co">
+        <label>BUCKET</label><input id="manualBucket" placeholder="cnn-images">
+        <button id="saveManualBtn">브라우저에 임시 저장</button>
+        <button id="clearManualBtn">임시 설정 삭제</button>
       </div>
-      <div>
-        <div class="card">
-          <h2>진행 상황</h2>
-          <div class="progress-wrap"><div id="progressBar" class="progress-bar"></div></div>
-          <p id="progressText" class="small">대기 중</p>
-          <div id="steps" class="steps"></div>
-        </div>
-        <div class="card">
-          <h2>최종 검증 결과</h2>
-          <div id="finalResult" class="result">아직 실행 전.</div>
-        </div>
-        <div class="two">
-          <div class="card"><h2>정확도 그래프</h2><canvas id="accChart" class="chart" width="800" height="330"></canvas></div>
-          <div class="card"><h2>손실 그래프</h2><canvas id="lossChart" class="chart" width="800" height="330"></canvas></div>
-        </div>
-        <div class="card"><h2>로그</h2><div id="log" class="log"></div></div>
+      <div class="card">
+        <h2>직접 열어볼 public URL</h2>
+        <p class="small">아래 URL을 새 탭에 붙여넣었을 때 이미지가 떠야 정상임.</p>
+        <div id="urlBox" class="formula"></div>
       </div>
     </div>
-  </section>
-
-  <section id="prep" class="tab">
-    <div class="card"><h2>사전작업 요약</h2><div class="three"><div><h3>클래스 개수 표</h3><div class="scroll"><table id="classTable"><thead><tr><th>클래스</th><th>불러온 이미지</th><th>학습 사용</th><th>판정</th></tr></thead><tbody></tbody></table></div></div><div><h3>전처리 설정</h3><table><tbody id="prepTable"></tbody></table></div><div><h3>데이터 진단</h3><div id="dataDiagnosis" class="status">아직 실행 전.</div></div></div></div>
-    <div class="card"><h2>파일 이름 저장 표</h2><div class="scroll"><table id="fileTable"><thead><tr><th>#</th><th>클래스</th><th>파일명</th><th>경로</th><th>로드</th><th>원본 크기</th><th>통일 크기</th></tr></thead><tbody></tbody></table></div></div>
-    <div class="card"><h2>샘플 이미지</h2><div id="sampleGrid" class="thumbgrid"></div></div>
-    <div class="card"><h2>형식 통일 미리보기</h2><p class="small">모든 사진은 같은 정사각형 크기, RGB 3채널, 0~1 숫자 범위로 변환된다.</p><div id="preGrid" class="thumbgrid"></div></div>
-  </section>
-
-  <section id="train" class="tab">
-    <div class="two">
-      <div class="card"><h2>학습 설정</h2><table><tbody id="trainSettingTable"></tbody></table></div>
-      <div class="card"><h2>학습 상태</h2><div id="trainStatus" class="status">아직 실행 전.</div></div>
-    </div>
-    <div class="card"><h2>학습 기록 표</h2><div class="scroll"><table id="historyTable"><thead><tr><th>Epoch</th><th>loss</th><th>accuracy</th><th>val_loss</th><th>val_accuracy</th><th>판정</th></tr></thead><tbody></tbody></table></div></div>
-  </section>
-
-  <section id="flow" class="tab">
-    <div class="card"><h2>모델 워크플로우</h2><div id="workflow" class="workflow">학습 후 표시된다.</div></div>
-    <div class="two">
-      <div class="card"><h2>레이어별 실제 구조</h2><div class="scroll"><table id="layerTable"><thead><tr><th>#</th><th>레이어</th><th>종류</th><th>출력 형태</th><th>파라미터</th></tr></thead><tbody></tbody></table></div></div>
-      <div class="card"><h2>진짜 가중치 식</h2><label>레이어 선택</label><select id="formulaLayer"></select><label>출력 필터/뉴런 번호</label><input id="formulaIndex" type="number" min="0" value="0"><button id="formulaBtn" class="btn" style="width:100%;margin-top:10px">가중치 식 보기</button><div id="formulaBox" class="formula mono" style="margin-top:10px">학습 후 확인 가능.</div></div>
+    <div class="card">
+      <h2>진단 로그</h2>
+      <div class="log" id="logBox"></div>
     </div>
   </section>
 
-  <section id="verify" class="tab">
-    <div class="grid">
-      <div><div class="card highlight sticky"><h2>이미지 검증</h2><p>학습이 끝나면 이 탭에서 확률분포가 자동으로 나온다. 다시 확인하려면 아래 버튼만 누르면 된다.</p><button id="verifyBtn" class="btn big yellow">test.jpg 검증하기</button><div class="divider"></div><label>다른 사진 직접 업로드</label><input id="extraTests" type="file" accept="image/*" multiple><button id="predictSelectedBtn" class="btn secondary" style="width:100%;margin-top:8px">선택한 사진 검증</button><button id="predictAllBtn" class="btn secondary" style="width:100%;margin-top:8px">업로드한 전체 사진 검증</button></div></div>
-      <div><div class="card"><h2>검증 이미지 목록</h2><div id="testGrid" class="thumbgrid"></div></div><div class="card"><h2>확률분포</h2><div id="predictionBox" class="result">학습 후 검증 가능.</div></div><div class="card"><h2>여러 사진 예측 표</h2><div class="scroll"><table id="batchTable"><thead><tr><th>#</th><th>파일</th><th>예측</th><th>최고 확률</th><th>전체 확률분포</th></tr></thead><tbody></tbody></table></div></div></div>
+  <section class="tab" id="prep">
+    <div class="card">
+      <h2>사전작업 결과</h2>
+      <div id="prepSummary" class="status">아직 이미지 로드 전</div>
+      <div id="countTable"></div>
+      <h3>샘플 이미지</h3>
+      <div class="imgGrid" id="sampleGrid"></div>
     </div>
   </section>
 
-  <section id="save" class="tab">
-    <div class="two"><div class="card"><h2>모델 다운로드</h2><p class="small">학습 후 model.json과 weights.bin이 다운로드된다.</p><button id="saveModelBtn" class="btn" style="width:100%">모델 다운로드</button><button id="saveMetaBtn" class="btn secondary" style="width:100%;margin-top:8px">metadata.json 다운로드</button></div><div class="card"><h2>모델 불러오기</h2><p class="small">model.json, weights.bin, metadata.json을 함께 선택한다.</p><input id="loadModelFiles" type="file" multiple><button id="loadModelBtn" class="btn" style="width:100%;margin-top:8px">모델 불러오기</button><div id="loadStatus" class="status" style="margin-top:10px">대기 중.</div></div></div>
+  <section class="tab" id="train">
+    <div class="card">
+      <h2>학습 상태</h2>
+      <div id="trainStatus" class="status">아직 학습 전</div>
+      <div id="historyTable"></div>
+    </div>
   </section>
 
-  <section id="explain" class="tab">
-    <div class="card"><h2>과적합이 뭔지</h2><p>과적합은 모델이 학습 사진을 너무 외워서 새 사진에는 약해지는 상태다. 예를 들어 학습 정확도는 높아지는데 검증 정확도는 낮거나 검증 손실이 올라가면 과적합을 의심한다.</p><p>이 사이트는 이미지 수가 많지 않다는 점을 고려해서 모델을 너무 깊게 만들지 않고, 드롭아웃과 이미지 증강을 넣었다. 그래서 수행평가 시연에서는 빠르게 학습하면서도 과하게 외우는 문제를 줄이는 쪽으로 맞췄다.</p></div>
-    <div class="card"><h2>왜 사진 형식을 통일하는지</h2><p>CNN은 모든 입력 사진이 같은 크기와 같은 채널 수를 가져야 계산할 수 있다. 그래서 apple, cherry, test.jpg는 모두 같은 정사각형 이미지, RGB 3채널, 0~1 범위의 숫자 배열로 바뀐 뒤 모델에 들어간다.</p></div>
+  <section class="tab" id="test">
+    <div class="card verifyTab">
+      <h2>이미지 검증</h2>
+      <p>기본 검증 이미지는 Supabase bucket 안의 <b>test.jpg</b>를 자동으로 사용함.</p>
+      <button class="primary" id="predictTestBtn">test.jpg 검증하기</button>
+      <div id="testImageBox" class="thumb" style="max-width:260px;margin-top:12px"></div>
+      <div id="predictionBox" class="status">아직 검증 전</div>
+      <div id="probBars"></div>
+    </div>
+  </section>
+
+  <section class="tab" id="workflow">
+    <div class="card">
+      <h2>모델 워크플로우</h2>
+      <div class="workflow" id="workflowBox"></div>
+    </div>
+    <div class="card">
+      <h2>실제 가중치 식 일부</h2>
+      <button id="formulaBtn">가중치 식 보기</button>
+      <div class="formula" id="formulaBox">모델 학습 또는 불러오기 후 확인 가능</div>
+    </div>
   </section>
 </main>
 
 <script>
-const CONFIG = window.APP_CONFIG || {};
-const DEFAULT_CLASSES = [
-  {name:'apple', folder:'apple', prefix:'apple', start:1, end:20, ext:'jpg'},
-  {name:'cherry', folder:'cherry', prefix:'cherry', start:1, end:20, ext:'jpg'}
+'use strict';
+
+const EXPECTED_BUCKET = 'cnn-images';
+const CLASSES = [
+  { name: 'apple', prefix: 'apple', filePrefix: 'apple', count: 20 },
+  { name: 'cherry', prefix: 'cherry', filePrefix: 'cherry', count: 20 }
 ];
-const settings = {inputSize:128, epochs:15, batchSize:8, lr:0.001, augment:true, validationSplit:0.2};
-const state = {client:null, bucket:CONFIG.BUCKET || 'cnn-images', classes:DEFAULT_CLASSES, images:[], testItems:[], selectedTest:0, model:null, classNames:[], history:[], metadata:null, busy:false};
-const $ = id => document.getElementById(id);
-const escapeHtml = s => String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[c]));
-function log(msg){const box=$('log'); box.textContent += `[${new Date().toLocaleTimeString()}] ${msg}\n`; box.scrollTop=box.scrollHeight;}
-function progress(p,msg){$('progressBar').style.width=`${Math.max(0,Math.min(100,p))}%`; $('progressText').textContent=msg;}
-function tab(id){document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active'));document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active'));$(id).classList.add('active');document.querySelector(`[data-tab="${id}"]`).classList.add('active');}
-document.querySelectorAll('.tab-btn').forEach(b=>b.onclick=()=>tab(b.dataset.tab));
-function setSteps(active){const names=['연결','이미지 로드','전처리','학습','검증']; $('steps').innerHTML=names.map((n,i)=>`<div class="step ${i<active?'done':i===active?'active':''}">${i+1}. ${n}</div>`).join('');}
-function status(el,msg,cls='status'){ $(el).className=cls; $(el).innerHTML=msg; }
-function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]];} return a;}
-function publicUrl(path){return state.client.storage.from(state.bucket).getPublicUrl(path).data.publicUrl;}
-function connect(){
-  if(!CONFIG.SUPABASE_URL || !CONFIG.SUPABASE_ANON_KEY){throw new Error('config.js에 SUPABASE_URL 또는 SUPABASE_ANON_KEY가 비어 있음.');}
-  state.bucket = CONFIG.BUCKET || 'cnn-images';
-  state.client = supabase.createClient(CONFIG.SUPABASE_URL, CONFIG.SUPABASE_ANON_KEY);
-  status('connectionStatus',`연결 설정 확인됨.<br><span class="mono">bucket: ${escapeHtml(state.bucket)}</span>`,'status ok');
-}
-async function setupTF(){
-  try{ await tf.setBackend('webgl'); }catch(e){ await tf.setBackend('cpu'); }
-  await tf.ready();
-  log(`TensorFlow.js backend: ${tf.getBackend()}`);
-}
-async function fetchImageBitmap(url){
-  const res = await fetch(url, {mode:'cors', cache:'no-store'});
-  if(!res.ok) throw new Error(`이미지 로드 실패: ${res.status}`);
-  const blob = await res.blob();
-  return await createImageBitmap(blob);
-}
-function drawToCanvas(bitmap, size=settings.inputSize){
-  const canvas=document.createElement('canvas'); canvas.width=size; canvas.height=size;
-  const ctx=canvas.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,size,size);
-  const scale=Math.min(size/bitmap.width, size/bitmap.height);
-  const w=bitmap.width*scale, h=bitmap.height*scale;
-  const x=(size-w)/2, y=(size-h)/2;
-  ctx.drawImage(bitmap,x,y,w,h);
-  return canvas;
-}
-async function loadOne(path, clsName, label){
-  const url=publicUrl(path);
-  const bitmap=await fetchImageBitmap(url);
-  const canvas=drawToCanvas(bitmap);
-  const tensor=tf.tidy(()=>tf.browser.fromPixels(canvas,3).toFloat().div(255));
-  return {className:clsName,label,path,file:path.split('/').pop(),url,bitmap,canvas,tensor,original:`${bitmap.width}×${bitmap.height}`,unified:`${settings.inputSize}×${settings.inputSize}×3`};
+const MODEL_FILES = {
+  meta: 'cnn-two-class-metadata.json',
+  model: 'cnn-two-class-model.json',
+  weights: 'cnn-two-class-model.weights.bin'
+};
+
+let model = null;
+let loadedData = null;
+let testImage = null;
+let testUrl = '';
+let imageSize = 128;
+let historyRows = [];
+let lastPrediction = null;
+
+const $ = (id) => document.getElementById(id);
+const sleep = (ms) => new Promise(r => setTimeout(r, ms));
+function log(msg){ const box=$('logBox'); box.textContent += `[${new Date().toLocaleTimeString()}] ${msg}\n`; box.scrollTop = box.scrollHeight; }
+function clearLog(){ $('logBox').textContent=''; }
+function setStatus(msg, type=''){ const el=$('mainStatus'); el.textContent=msg; el.className='status '+type; }
+function setProgress(p){ $('progress').style.width = Math.max(0, Math.min(100, p)) + '%'; }
+function escapeHtml(s){ return String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c])); }
+function switchTab(name){ document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); document.querySelectorAll('.tabBtn').forEach(b=>b.classList.remove('active')); $(name).classList.add('active'); document.querySelector(`[data-tab="${name}"]`).classList.add('active'); }
+
+document.querySelectorAll('.tabBtn').forEach(btn=>btn.addEventListener('click',()=>switchTab(btn.dataset.tab)));
+
+function currentConfig(){
+  const manualUrl = localStorage.getItem('manual_supabase_url') || '';
+  const manualBucket = localStorage.getItem('manual_bucket') || '';
+  const cfg = window.APP_CONFIG || {};
+  return {
+    url: (manualUrl || cfg.SUPABASE_URL || '').trim().replace(/\/$/, ''),
+    key: (cfg.SUPABASE_ANON_KEY || '').trim(),
+    bucket: (manualBucket || cfg.BUCKET || EXPECTED_BUCKET).trim()
+  };
 }
 
-function classPathCandidates(c,n){
-  const bases=[`${c.folder}/${c.prefix}${n}`, `${state.bucket}/${c.folder}/${c.prefix}${n}`];
-  const exts=['jpg','JPG','jpeg','JPEG','png','PNG','webp','WEBP'];
-  return bases.flatMap(b=>exts.map(e=>`${b}.${e}`));
+function publicObjectUrl(path){
+  const cfg = currentConfig();
+  if(!cfg.url || !cfg.bucket) return '';
+  const cleanPath = path.split('/').map(encodeURIComponent).join('/');
+  return `${cfg.url}/storage/v1/object/public/${encodeURIComponent(cfg.bucket)}/${cleanPath}`;
 }
-function testPathCandidates(){
-  const bases=['test', `${state.bucket}/test`];
-  const exts=['jpg','JPG','jpeg','JPEG','png','PNG','webp','WEBP'];
-  return bases.flatMap(b=>exts.map(e=>`${b}.${e}`));
+
+function candidatePaths(basePath){
+  // 네가 말한 정상 구조: bucket cnn-images 안에 apple/apple1.jpg
+  // 실수 구조: bucket cnn-images 안에 cnn-images/apple/apple1.jpg
+  return [basePath, `${EXPECTED_BUCKET}/${basePath}`];
 }
-async function loadFirstWorking(paths, clsName, label){
-  let lastErr=null;
-  for(const path of paths){
-    try{return await loadOne(path,clsName,label);}catch(e){lastErr=e;}
+
+function imageCandidates(folder, fileBase){
+  const exts = ['jpg','JPG','jpeg','JPEG','png','PNG','webp','WEBP'];
+  const paths = [];
+  for(const ext of exts){
+    for(const p of candidatePaths(`${folder}/${fileBase}.${ext}`)) paths.push(p);
   }
-  throw lastErr || new Error('이미지 로드 실패');
+  return paths;
+}
+
+function rootFileCandidates(file){
+  return candidatePaths(file);
+}
+
+function loadImageElement(url, timeoutMs=9000){
+  return new Promise((resolve,reject)=>{
+    const img = new Image();
+    const timer = setTimeout(()=>{ img.src=''; reject(new Error('timeout')); }, timeoutMs);
+    img.crossOrigin = 'anonymous';
+    img.onload = ()=>{ clearTimeout(timer); resolve(img); };
+    img.onerror = ()=>{ clearTimeout(timer); reject(new Error('image load failed')); };
+    img.src = url + (url.includes('?') ? '&' : '?') + 't=' + Date.now();
+  });
+}
+
+async function fetchJsonFromCandidates(paths){
+  const tried = [];
+  for(const path of paths){
+    const url = publicObjectUrl(path);
+    tried.push(url);
+    try{
+      const res = await fetch(url + (url.includes('?')?'&':'?') + 't=' + Date.now(), {cache:'no-store'});
+      log(`JSON fetch ${res.status}: ${url}`);
+      if(res.ok) return {json: await res.json(), url, path, tried};
+    }catch(e){ log(`JSON fetch 실패: ${url} / ${e.message}`); }
+  }
+  throw new Error('JSON 파일을 찾지 못함:\n' + tried.join('\n'));
+}
+
+async function loadImageFromCandidates(paths, label){
+  const errors = [];
+  for(const path of paths){
+    const url = publicObjectUrl(path);
+    try{
+      const img = await loadImageElement(url);
+      log(`이미지 성공: ${label} -> ${path}`);
+      return {img, url, path};
+    }catch(e){
+      errors.push(`${path}: ${e.message}`);
+      log(`이미지 실패: ${label} -> ${path}`);
+    }
+  }
+  return {img:null, url:'', path:'', errors};
+}
+
+function configReport(){
+  const cfg = currentConfig();
+  const hasConfig = !!window.APP_CONFIG;
+  const report = [
+    `config.js 로드 여부: ${hasConfig ? '성공' : '실패 또는 없음'}`,
+    `SUPABASE_URL: ${cfg.url || '(비어 있음)'}`,
+    `BUCKET: ${cfg.bucket || '(비어 있음)'}`,
+    `ANON KEY: ${cfg.key ? '있음(이미지 public 접근에는 필수 아님)' : '없음'}`
+  ].join('\n');
+  $('configBox').textContent = report;
+  $('configBox').className = 'status ' + (cfg.url && cfg.bucket ? 'ok' : 'bad');
+  $('manualUrl').value = cfg.url;
+  $('manualBucket').value = cfg.bucket || EXPECTED_BUCKET;
+
+  const testUrls = [
+    publicObjectUrl('test.jpg'),
+    publicObjectUrl('apple/apple1.jpg'),
+    publicObjectUrl('cherry/cherry1.jpg'),
+    publicObjectUrl('cnn-two-class-model.json')
+  ].join('\n');
+  $('urlBox').textContent = testUrls || 'SUPABASE_URL 또는 BUCKET이 비어 있어서 URL을 만들 수 없음';
+}
+
+async function runDiagnosis(){
+  clearLog();
+  setProgress(0);
+  configReport();
+  const cfg = currentConfig();
+  if(!cfg.url || !cfg.bucket){
+    setStatus('config.js 연결값이 비어 있음. Vercel에 config.js가 같이 올라갔는지 확인해야 함.', 'bad');
+    return false;
+  }
+  setStatus('Supabase public URL 직접 진단 중...', 'warn');
+  setProgress(10);
+  log('진단 시작');
+  log(`현재 SUPABASE_URL = ${cfg.url}`);
+  log(`현재 BUCKET = ${cfg.bucket}`);
+
+  const checks = [
+    {label:'test.jpg', paths: rootFileCandidates('test.jpg')},
+    {label:'apple1.jpg', paths: imageCandidates('apple','apple1')},
+    {label:'cherry1.jpg', paths: imageCandidates('cherry','cherry1')},
+    {label:'model.json', paths: rootFileCandidates(MODEL_FILES.model)}
+  ];
+  const results = [];
+  let idx = 0;
+  for(const c of checks){
+    idx++;
+    setProgress(10 + idx*18);
+    if(c.label.endsWith('.json')){
+      let ok = false, goodUrl = '';
+      for(const path of c.paths){
+        const url = publicObjectUrl(path);
+        try{
+          const res = await fetch(url + '?t=' + Date.now(), {cache:'no-store'});
+          log(`${c.label} fetch ${res.status}: ${url}`);
+          if(res.ok){ ok=true; goodUrl=url; break; }
+        }catch(e){ log(`${c.label} fetch 실패: ${url} / ${e.message}`); }
+      }
+      results.push({label:c.label, ok, url:goodUrl});
+    }else{
+      const r = await loadImageFromCandidates(c.paths, c.label);
+      results.push({label:c.label, ok:!!r.img, url:r.url});
+    }
+    await sleep(50);
+  }
+  const okImages = results.filter(r=>r.ok).length;
+  const html = `<table><thead><tr><th>항목</th><th>상태</th><th>성공 URL</th></tr></thead><tbody>${results.map(r=>`<tr><td>${escapeHtml(r.label)}</td><td>${r.ok?'성공':'실패'}</td><td class="mono">${escapeHtml(r.url || '-')}</td></tr>`).join('')}</tbody></table>`;
+  $('countTable').innerHTML = html;
+  setProgress(100);
+  if(results[0].ok && results[1].ok && results[2].ok){
+    setStatus('연결 진단 성공. test.jpg, apple1.jpg, cherry1.jpg 모두 public URL로 불러왔음.', 'ok');
+    return true;
+  }
+  setStatus('연결 진단 실패. 화면의 public URL을 새 탭에 열어봐. 새 탭에서도 안 뜨면 Supabase 파일 위치/공개설정 문제고, 새 탭에서 뜨는데 여기서만 안 되면 CORS/배포파일 문제야.', 'bad');
+  return false;
+}
+
+function imageToTensor(img, size=imageSize){
+  return tf.tidy(()=>{
+    const c = document.createElement('canvas');
+    c.width = size; c.height = size;
+    const ctx = c.getContext('2d');
+    ctx.fillStyle = '#fff'; ctx.fillRect(0,0,size,size);
+    const ratio = Math.min(size / img.naturalWidth, size / img.naturalHeight);
+    const w = Math.round(img.naturalWidth * ratio);
+    const h = Math.round(img.naturalHeight * ratio);
+    const x = Math.floor((size-w)/2);
+    const y = Math.floor((size-h)/2);
+    ctx.drawImage(img, x, y, w, h);
+    return tf.browser.fromPixels(c, 3).toFloat().div(255);
+  });
+}
+
+function previewCanvas(img, size=128){
+  const c = document.createElement('canvas'); c.width=size; c.height=size;
+  const ctx = c.getContext('2d'); ctx.fillStyle='#fff'; ctx.fillRect(0,0,size,size);
+  const ratio = Math.min(size / img.naturalWidth, size / img.naturalHeight);
+  const w = Math.round(img.naturalWidth * ratio), h = Math.round(img.naturalHeight * ratio);
+  ctx.drawImage(img, Math.floor((size-w)/2), Math.floor((size-h)/2), w, h);
+  return c.toDataURL('image/jpeg', .9);
 }
 
 async function loadDataset(){
-  state.images.forEach(i=>i.tensor?.dispose?.());
-  state.images=[];
-  state.classNames=state.classes.map(c=>c.name);
-  const rows=[]; let ok=0; let fail=0;
-  const totalExpected=state.classes.reduce((sum,c)=>sum+(c.end-c.start+1),0);
-  for(let ci=0; ci<state.classes.length; ci++){
-    const c=state.classes[ci];
-    for(let n=c.start; n<=c.end; n++){
-      const paths=classPathCandidates(c,n);
-      let row={className:c.name,file:`${c.prefix}${n}.jpg`,path:paths[0],loaded:'대기',original:'—',unified:`${settings.inputSize}×${settings.inputSize}×3`};
-      try{
-        const item=await loadFirstWorking(paths,c.name,ci);
-        state.images.push(item); ok++;
-        row.path=item.path; row.file=item.file;
-        row.loaded='성공'; row.original=item.original;
-      }catch(e){
-        fail++;
-        row.loaded='실패: '+e.message;
-        row.path=paths.slice(0,4).join(' 또는 ');
+  setStatus('이미지 파일 직접 로드 중...', 'warn');
+  switchTab('prep');
+  const classData = [];
+  let loadedTotal = 0;
+  let classIndex = 0;
+  $('sampleGrid').innerHTML = '';
+  for(const cls of CLASSES){
+    const items = [];
+    for(let i=1;i<=cls.count;i++){
+      const fileBase = `${cls.filePrefix}${i}`;
+      const r = await loadImageFromCandidates(imageCandidates(cls.prefix, fileBase), `${cls.name}${i}`);
+      if(r.img){
+        items.push({img:r.img, url:r.url, path:r.path, name:`${fileBase}.jpg`, label:classIndex});
+        loadedTotal++;
+        if(items.length <= 4){
+          const div = document.createElement('div'); div.className='thumb';
+          div.innerHTML = `<img src="${previewCanvas(r.img, 128)}"><div class="small"><b>${cls.name}</b><br>${escapeHtml(r.path)}<br>${r.img.naturalWidth}×${r.img.naturalHeight} → ${imageSize}×${imageSize}</div>`;
+          $('sampleGrid').appendChild(div);
+        }
       }
-      rows.push(row);
-      progress(10+Math.round((ok+fail)/totalExpected*28),`이미지 불러오는 중: 성공 ${ok}장 / 실패 ${fail}장`);
+      setProgress(Math.min(45, 10 + loadedTotal));
       await tf.nextFrame();
     }
+    classData.push({...cls, label:classIndex, items});
+    classIndex++;
   }
-  renderPrep(rows);
-  const minPerClass = Math.min(...state.classNames.map(c=>state.images.filter(i=>i.className===c).length));
-  if(minPerClass < 2) throw new Error(`학습 가능한 이미지가 너무 적음. 현재 최소 클래스 ${minPerClass}장만 로드됨. bucket 안 경로가 apple/apple1.jpg인지, 또는 cnn-images/apple/apple1.jpg처럼 한 번 더 들어갔는지 확인해야 함.`);
-  return {ok,fail};
-}
-function renderPrep(fileRows){
-  const countMap={}; state.classNames.forEach(c=>countMap[c]=0); state.images.forEach(i=>countMap[i.className]++);
-  const min=Math.min(...Object.values(countMap));
-  $('classTable').querySelector('tbody').innerHTML=Object.entries(countMap).map(([c,n])=>`<tr><td>${escapeHtml(c)}</td><td>${n}</td><td>${min}</td><td>${n<10?'적음: 과적합 주의':'시연 가능'}</td></tr>`).join('');
-  $('prepTable').innerHTML=`<tr><th>입력 크기</th><td>${settings.inputSize}×${settings.inputSize}</td></tr><tr><th>색상</th><td>RGB 3채널</td></tr><tr><th>숫자 범위</th><td>0~1 정규화</td></tr><tr><th>맞춤 방식</th><td>비율 유지 + 흰 여백</td></tr><tr><th>기본 검증 이미지</th><td>test.jpg</td></tr>`;
-  const total=state.images.length;
-  status('dataDiagnosis', total<40?`총 ${total}장. 데이터가 적어서 드롭아웃과 증강을 사용한다.`:`총 ${total}장. 시연용 학습 가능.`,'status ok');
-  $('fileTable').querySelector('tbody').innerHTML=fileRows.map((r,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(r.className)}</td><td>${escapeHtml(r.file)}</td><td class="mono">${escapeHtml(r.path)}</td><td>${escapeHtml(r.loaded)}</td><td>${r.original}</td><td>${r.unified}</td></tr>`).join('');
-  const samples=[]; state.classNames.forEach(c=>samples.push(...state.images.filter(i=>i.className===c).slice(0,4)));
-  $('sampleGrid').innerHTML=samples.map(i=>`<div class="thumb"><img src="${i.url}" alt=""><div class="cap">${escapeHtml(i.className)}<br>${escapeHtml(i.file)}<br>${i.original}</div></div>`).join('');
-  $('preGrid').innerHTML=samples.map(i=>{const data=i.canvas.toDataURL('image/jpeg',.9);return `<div class="thumb"><img src="${data}" alt=""><div class="cap">${escapeHtml(i.className)}<br>${i.unified}</div></div>`;}).join('');
-}
-function balancedItems(){
-  const groups=state.classNames.map(c=>shuffle(state.images.filter(i=>i.className===c)));
-  const min=Math.min(...groups.map(g=>g.length));
-  return shuffle(groups.flatMap(g=>g.slice(0,min)));
-}
-function makeAugmentedTensor(img){
-  return tf.tidy(()=>{
-    let x=img.tensor.clone();
-    if(Math.random()<0.5) x=x.reverse(1);
-    const b=0.86+Math.random()*0.28;
-    x=x.mul(b).clipByValue(0,1);
-    return x;
-  });
-}
-function buildTensors(){
-  const items=balancedItems();
-  const tensors=[]; const labels=[];
-  for(const item of items){
-    tensors.push(item.tensor.clone()); labels.push(item.label);
-    if(settings.augment){ tensors.push(makeAugmentedTensor(item)); labels.push(item.label); }
+  loadedData = classData;
+  const minCount = Math.min(...classData.map(c=>c.items.length));
+  $('prepSummary').textContent = `로드 완료. apple ${classData[0].items.length}장, cherry ${classData[1].items.length}장. 최소 클래스 ${minCount}장.`;
+  $('prepSummary').className = 'status ' + (minCount >= 5 ? 'ok' : 'bad');
+  $('countTable').innerHTML = `<table><thead><tr><th>클래스</th><th>로드된 장수</th><th>예상 장수</th><th>예시 성공 경로</th></tr></thead><tbody>${classData.map(c=>`<tr><td>${c.name}</td><td>${c.items.length}</td><td>${c.count}</td><td class="mono">${escapeHtml(c.items[0]?.path || '-')}</td></tr>`).join('')}</tbody></table>`;
+  if(minCount < 5){
+    throw new Error(`학습 가능한 이미지가 너무 적음. 현재 최소 클래스 ${minCount}장만 로드됨. 연결 진단 탭의 public URL을 새 탭에서 열어봐.`);
   }
-  const zipped=shuffle(tensors.map((t,i)=>({t,label:labels[i]})));
-  const xs=tf.stack(zipped.map(z=>z.t));
-  zipped.forEach(z=>z.t.dispose());
-  const ys=tf.oneHot(tf.tensor1d(zipped.map(z=>z.label),'int32'), state.classNames.length);
-  return {xs,ys,count:zipped.length};
+  return classData;
 }
-function buildModel(){
-  if(state.model){ try{state.model.dispose();}catch(e){} }
-  const m=tf.sequential();
-  m.add(tf.layers.conv2d({inputShape:[settings.inputSize,settings.inputSize,3],filters:16,kernelSize:3,padding:'same',activation:'relu',name:'conv_1'}));
-  m.add(tf.layers.maxPooling2d({poolSize:2,strides:2,name:'pool_1'}));
-  m.add(tf.layers.conv2d({filters:32,kernelSize:3,padding:'same',activation:'relu',name:'conv_2'}));
-  m.add(tf.layers.maxPooling2d({poolSize:2,strides:2,name:'pool_2'}));
-  m.add(tf.layers.conv2d({filters:64,kernelSize:3,padding:'same',activation:'relu',name:'conv_3'}));
-  m.add(tf.layers.maxPooling2d({poolSize:2,strides:2,name:'pool_3'}));
+
+function buildModel(numClasses=2){
+  if(model){ try{ model.dispose(); }catch(e){} model=null; }
+  const m = tf.sequential();
+  m.add(tf.layers.conv2d({inputShape:[imageSize,imageSize,3], filters:16, kernelSize:3, activation:'relu', padding:'same', name:'conv_1'}));
+  m.add(tf.layers.maxPooling2d({poolSize:2, strides:2, name:'pool_1'}));
+  m.add(tf.layers.conv2d({filters:32, kernelSize:3, activation:'relu', padding:'same', name:'conv_2'}));
+  m.add(tf.layers.maxPooling2d({poolSize:2, strides:2, name:'pool_2'}));
+  m.add(tf.layers.conv2d({filters:64, kernelSize:3, activation:'relu', padding:'same', name:'conv_3'}));
+  m.add(tf.layers.maxPooling2d({poolSize:2, strides:2, name:'pool_3'}));
   m.add(tf.layers.flatten({name:'flatten'}));
-  m.add(tf.layers.dropout({rate:0.35,name:'dropout'}));
-  m.add(tf.layers.dense({units:128,activation:'relu',name:'dense_hidden'}));
-  m.add(tf.layers.dropout({rate:0.35,name:'dropout_2'}));
-  m.add(tf.layers.dense({units:state.classNames.length,activation:'softmax',name:'softmax_output'}));
-  m.compile({optimizer:tf.train.adam(settings.lr),loss:'categoricalCrossentropy',metrics:['accuracy']});
-  state.model=m;
-  state.metadata={classNames:state.classNames,inputSize:settings.inputSize,bucket:state.bucket,createdAt:new Date().toISOString()};
-}
-async function trainModel(){
-  renderTrainSettings();
-  const {xs,ys,count}=buildTensors();
-  buildModel();
-  state.history=[];
-  let bestVal=-1, wait=0;
-  status('trainStatus',`학습 시작. 사용 샘플 ${count}개. 검증 ${Math.round(settings.validationSplit*100)}%.`,'status');
-  const histBody=$('historyTable').querySelector('tbody'); histBody.innerHTML='';
-  await state.model.fit(xs,ys,{epochs:settings.epochs,batchSize:settings.batchSize,validationSplit:settings.validationSplit,shuffle:true,callbacks:{
-    onEpochEnd: async (epoch,logs)=>{
-      const acc=logs.acc ?? logs.accuracy ?? 0; const valAcc=logs.val_acc ?? logs.val_accuracy ?? 0;
-      const item={epoch:epoch+1,loss:logs.loss,acc,val_loss:logs.val_loss,val_acc:valAcc}; state.history.push(item);
-      let judge='정상';
-      if(valAcc>bestVal+0.005){bestVal=valAcc; wait=0;} else {wait++;}
-      if(acc-valAcc>0.25) judge='과적합 의심';
-      if(wait>=5){ state.model.stopTraining=true; judge='검증 정확도 정체: 조기 중단'; }
-      histBody.innerHTML += `<tr><td>${item.epoch}</td><td>${item.loss.toFixed(4)}</td><td>${(acc*100).toFixed(1)}%</td><td>${item.val_loss?.toFixed(4) ?? '—'}</td><td>${(valAcc*100).toFixed(1)}%</td><td>${judge}</td></tr>`;
-      drawCharts();
-      progress(50+Math.round((epoch+1)/settings.epochs*35),`학습 중: ${epoch+1}/${settings.epochs} epoch, 정확도 ${(acc*100).toFixed(1)}%, 검증 ${(valAcc*100).toFixed(1)}%`);
-      log(`epoch ${epoch+1}: loss=${item.loss.toFixed(4)}, acc=${(acc*100).toFixed(1)}%, val_acc=${(valAcc*100).toFixed(1)}%`);
-      await tf.nextFrame();
-    }
-  }});
-  xs.dispose(); ys.dispose();
+  m.add(tf.layers.dense({units:64, activation:'relu', name:'dense_1'}));
+  m.add(tf.layers.dropout({rate:.25, name:'dropout'}));
+  m.add(tf.layers.dense({units:numClasses, activation:'softmax', name:'softmax_output'}));
+  m.compile({optimizer:tf.train.adam(0.001), loss:'categoricalCrossentropy', metrics:['accuracy']});
+  model = m;
   renderWorkflow();
-  status('trainStatus','학습 완료. 이제 test.jpg 검증 가능.','status ok');
+  return m;
 }
-function renderTrainSettings(){
-  $('trainSettingTable').innerHTML=`<tr><th>입력 크기</th><td>${settings.inputSize}×${settings.inputSize}</td></tr><tr><th>모델</th><td>Conv2D 3블록 + Dense + Softmax</td></tr><tr><th>에포크</th><td>${settings.epochs}</td></tr><tr><th>배치 크기</th><td>${settings.batchSize}</td></tr><tr><th>학습률</th><td>${settings.lr}</td></tr><tr><th>과적합 방지</th><td>Dropout 0.35, 이미지 증강, 검증 정체 조기 중단</td></tr>`;
-}
-function drawLine(canvasId, data, key, label){
-  const c=$(canvasId), ctx=c.getContext('2d'), w=c.width, h=c.height; ctx.clearRect(0,0,w,h); ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h); ctx.strokeStyle='#000'; ctx.lineWidth=1; ctx.strokeRect(40,20,w-60,h-55); ctx.fillStyle='#000'; ctx.font='13px Arial'; ctx.fillText(label,45,16);
-  if(data.length<1)return;
-  const vals=data.map(d=>d[key]).filter(v=>Number.isFinite(v)); const min=Math.min(...vals,0), max=Math.max(...vals, key.includes('acc')?1:Math.max(...vals,1));
-  const pts=data.map((d,i)=>{const x=45+(w-70)*(i/(Math.max(data.length-1,1))); const y=20+(h-60)*(1-((d[key]-min)/(max-min||1))); return [x,y];});
-  ctx.beginPath(); pts.forEach(([x,y],i)=>i?ctx.lineTo(x,y):ctx.moveTo(x,y)); ctx.strokeStyle='#000'; ctx.lineWidth=3; ctx.stroke(); pts.forEach(([x,y])=>{ctx.beginPath();ctx.arc(x,y,3,0,Math.PI*2);ctx.fill();});
-}
-function drawCharts(){drawLine('accChart',state.history,'acc','training accuracy'); drawLine('lossChart',state.history,'loss','training loss');}
-async function loadDefaultTest(){
-  const paths=testPathCandidates();
-  let lastErr=null;
-  for(const path of paths){
-    try{
-      const url=publicUrl(path); const bitmap=await fetchImageBitmap(url); const canvas=drawToCanvas(bitmap); const tensor=tf.tidy(()=>tf.browser.fromPixels(canvas,3).toFloat().div(255));
-      state.testItems.forEach(i=>i.tensor?.dispose?.()); state.testItems=[{file:path.split('/').pop(),path,url,bitmap,canvas,tensor,original:`${bitmap.width}×${bitmap.height}`}]; state.selectedTest=0; renderTestGrid(); return state.testItems[0];
-    }catch(e){lastErr=e;}
+
+async function makeTrainingTensors(classData){
+  const minCount = Math.min(...classData.map(c=>c.items.length));
+  const usePerClass = Math.min(minCount, 20);
+  const xs = [], ys = [];
+  for(const cls of classData){
+    const shuffled = [...cls.items].sort(()=>Math.random()-0.5).slice(0, usePerClass);
+    for(const item of shuffled){
+      xs.push(imageToTensor(item.img));
+      ys.push(cls.label);
+    }
   }
-  throw lastErr || new Error('test.jpg 로드 실패');
+  const x = tf.stack(xs);
+  xs.forEach(t=>t.dispose());
+  const y = tf.oneHot(tf.tensor1d(ys, 'int32'), classData.length);
+  return {x, y, count: ys.length, perClass: usePerClass};
 }
-function renderTestGrid(){
-  $('testGrid').innerHTML=state.testItems.map((i,idx)=>`<div class="thumb selectable ${idx===state.selectedTest?'selected':''}" data-i="${idx}"><img src="${i.canvas?i.canvas.toDataURL('image/jpeg',.9):i.url}" alt=""><div class="cap">${escapeHtml(i.file)}<br>${escapeHtml(i.original||'')}</div></div>`).join('');
-  document.querySelectorAll('#testGrid .thumb').forEach(el=>el.onclick=()=>{state.selectedTest=Number(el.dataset.i); renderTestGrid();});
-}
-async function predictItem(item){
-  if(!state.model) throw new Error('아직 학습된 모델이 없음. 먼저 학습하고 검증하기를 눌러야 함.');
-  const probs=await tf.tidy(()=>state.model.predict(item.tensor.expandDims(0))).data();
-  return Array.from(probs).map((p,i)=>({className:state.classNames[i],prob:p})).sort((a,b)=>b.prob-a.prob);
-}
-function renderPrediction(preds, target='predictionBox'){
-  const html=preds.map(p=>`<div style="margin:10px 0"><b>${escapeHtml(p.className)}</b> ${(p.prob*100).toFixed(2)}%<div class="barline"><span style="width:${(p.prob*100).toFixed(2)}%"></span></div></div>`).join('');
-  $(target).innerHTML=html;
-  $('finalResult').innerHTML=`<h3>예측 결과: ${escapeHtml(preds[0].className)} (${(preds[0].prob*100).toFixed(2)}%)</h3>${html}`;
-}
-async function verifyDefault(){
-  const item = state.testItems.find(i=>i.file==='test.jpg') || await loadDefaultTest();
-  const preds=await predictItem(item); renderPrediction(preds); tab('verify'); return preds;
-}
-async function runAll(){
-  if(state.busy)return; state.busy=true; $('oneClickBtn').disabled=true; $('onlyVerifyBtn').disabled=true;
+
+async function trainFromSupabase(){
+  setProgress(0); clearLog(); configReport();
+  const ok = await runDiagnosis();
+  if(!ok) throw new Error('연결 진단 실패. 이미지 public URL이 열리지 않음.');
+  setProgress(5);
+  const classData = await loadDataset();
+  setProgress(50);
+  setStatus('CNN 모델 생성 중...', 'warn');
+  const m = buildModel(classData.length);
+  await tf.nextFrame();
+  setStatus('이미지를 텐서로 변환 중...', 'warn');
+  const {x,y,count,perClass} = await makeTrainingTensors(classData);
+  setProgress(60);
+  $('trainStatus').textContent = `학습 시작. 총 ${count}장, 클래스당 ${perClass}장 사용. 입력 크기 ${imageSize}×${imageSize}.`;
+  $('trainStatus').className = 'status warn';
+  switchTab('train');
+  historyRows = [];
   try{
-    progress(0,'시작'); setSteps(0); log('원버튼 실행 시작');
-    connect(); await setupTF(); progress(8,'Supabase 연결 확인 완료');
-    setSteps(1); await loadDataset(); log(`이미지 로드 완료: ${state.images.length}장`);
-    setSteps(2); progress(42,'전처리 완료. 학습 텐서 생성 준비'); await tf.nextFrame();
-    setSteps(3); await trainModel();
-    setSteps(4); progress(88,'test.jpg 불러와 검증 중'); await loadDefaultTest(); const preds=await verifyDefault();
-    progress(100,`완료: ${preds[0].className} ${(preds[0].prob*100).toFixed(2)}%`); setSteps(5); log('전체 완료');
-  }catch(e){ console.error(e); progress(0,'오류 발생'); status('connectionStatus',`오류: ${escapeHtml(e.message)}`,'status bad'); $('finalResult').innerHTML=`<b>오류</b><br>${escapeHtml(e.message)}<br><br>bucket 공개 여부, config.js 값, 파일명 apple1.jpg~apple20.jpg / cherry1.jpg~cherry20.jpg / test.jpg를 확인해.`; log('오류: '+e.message); }
-  finally{state.busy=false; $('oneClickBtn').disabled=false; $('onlyVerifyBtn').disabled=false;}
-}
-function renderWorkflow(){
-  if(!state.model)return;
-  const nodes=[['입력','이미지를 숫자 배열로 변환',`${settings.inputSize}×${settings.inputSize}×3`],['Conv2D','필터가 선·색·윤곽 패턴 계산','가중치 공유'],['Pooling','중요 특징만 압축','크기 절반'],['Flatten','2D 특징맵을 1줄 벡터로 펼침','벡터화'],['Dense','퍼셉트론처럼 가중합 계산','은닉층'],['Softmax','클래스별 확률분포로 변환',state.classNames.join(' / ')]];
-  $('workflow').innerHTML=nodes.map(n=>`<div class="node"><b>${n[0]}</b><p class="small">${n[1]}</p><span class="tag">${escapeHtml(n[2])}</span></div>`).join('');
-  $('layerTable').querySelector('tbody').innerHTML=state.model.layers.map((l,i)=>`<tr><td>${i+1}</td><td>${escapeHtml(l.name)}</td><td>${escapeHtml(l.getClassName())}</td><td class="mono">${escapeHtml(JSON.stringify(l.outputShape||l.output?.shape||'—'))}</td><td>${l.countParams?.() ?? '—'}</td></tr>`).join('');
-  const usable=state.model.layers.filter(l=>l.getWeights().length>0);
-  $('formulaLayer').innerHTML=usable.map((l,i)=>`<option value="${i}">${escapeHtml(l.name)} (${escapeHtml(l.getClassName())})</option>`).join('');
-  if(usable.length) renderFormula();
-}
-async function renderFormula(){
-  if(!state.model){$('formulaBox').textContent='학습 후 확인 가능.'; return;}
-  const usable=state.model.layers.filter(l=>l.getWeights().length>0); const layer=usable[Number($('formulaLayer').value)||0]; if(!layer)return;
-  const idx=Math.max(0,Number($('formulaIndex').value)||0); const weights=layer.getWeights(); const cls=layer.getClassName();
-  if(cls==='Conv2D'){
-    const [kernel,bias]=weights; const shape=kernel.shape; const out=Math.min(idx,shape[3]-1); const vals=Array.from(await kernel.data()).slice(out, out+12).map(v=>v.toFixed(4)); const b=bias?Array.from(await bias.data())[out].toFixed(4):'0';
-    $('formulaBox').textContent=`레이어: ${layer.name}\n형식: Conv2D\n커널 shape: [${shape.join(', ')}]\n\ny[h,w,${out}] = ReLU(Σ 입력[h+i,w+j,c] × W[i,j,c,${out}] + b[${out}])\n\nb[${out}] = ${b}\nW 일부 = ${vals.join(', ')}\n\n즉, 작은 필터가 이미지 위를 이동하면서 주변 픽셀과 가중치를 곱해 더하고, 그 결과가 특징맵이 된다.`;
-  }else if(cls==='Dense'){
-    const [kernel,bias]=weights; const shape=kernel.shape; const out=Math.min(idx,shape[1]-1); const data=await kernel.data(); const terms=[]; for(let i=0;i<Math.min(12,shape[0]);i++) terms.push(`a${i}×${data[i*shape[1]+out].toFixed(4)}`); const b=bias?Array.from(await bias.data())[out].toFixed(4):'0';
-    $('formulaBox').textContent=`레이어: ${layer.name}\n형식: Dense\n가중치 shape: [${shape.join(', ')}]\n\nz${out} = ${terms.join(' + ')} + ... + b${out}\nb${out} = ${b}\n\nDense층은 앞 레이어에서 나온 특징값 a에 각각 가중치 W를 곱해 더한다. 마지막 Dense는 이 값을 softmax로 바꿔 클래스별 확률을 만든다.`;
-  }else{
-    $('formulaBox').textContent=`${layer.name}: ${cls}\n이 레이어는 가중치가 있지만 식 표시를 단순화하지 않았다.`;
+    await m.fit(x, y, {
+      epochs: 12,
+      batchSize: 8,
+      shuffle: true,
+      callbacks: {
+        onEpochEnd: async (epoch, logs)=>{
+          const acc = logs.acc ?? logs.accuracy ?? 0;
+          historyRows.push({epoch: epoch+1, loss: logs.loss, acc});
+          $('historyTable').innerHTML = `<table><thead><tr><th>epoch</th><th>loss</th><th>accuracy</th></tr></thead><tbody>${historyRows.map(r=>`<tr><td>${r.epoch}</td><td>${r.loss.toFixed(4)}</td><td>${(r.acc*100).toFixed(1)}%</td></tr>`).join('')}</tbody></table>`;
+          $('trainStatus').textContent = `학습 중: ${epoch+1}/12 epoch, 정확도 ${(acc*100).toFixed(1)}%, 손실 ${logs.loss.toFixed(4)}`;
+          setProgress(60 + (epoch+1)/12*25);
+          await tf.nextFrame();
+        }
+      }
+    });
+  } finally {
+    x.dispose(); y.dispose();
   }
+  $('trainStatus').textContent = '학습 완료. 이제 test.jpg 검증 가능.';
+  $('trainStatus').className = 'status ok';
+  setProgress(88);
+  await loadTestImage();
+  await predictTest();
+  setProgress(100);
+  setStatus('완료. 학습 후 test.jpg 확률분포를 출력했음.', 'ok');
 }
-async function handleExtraFiles(files){
-  for(const it of state.testItems){ if(it.file!=='test.jpg') it.tensor?.dispose?.(); }
-  const keep=state.testItems.filter(i=>i.file==='test.jpg');
-  const added=[];
-  for(const file of files){ const bitmap=await createImageBitmap(file); const canvas=drawToCanvas(bitmap); const tensor=tf.tidy(()=>tf.browser.fromPixels(canvas,3).toFloat().div(255)); added.push({file:file.name,path:file.name,url:URL.createObjectURL(file),bitmap,canvas,tensor,original:`${bitmap.width}×${bitmap.height}`}); }
-  state.testItems=[...keep,...added]; state.selectedTest=state.testItems.length>1?1:0; renderTestGrid();
+
+async function loadTestImage(){
+  const r = await loadImageFromCandidates(rootFileCandidates('test.jpg'), 'test.jpg');
+  if(!r.img) throw new Error('test.jpg를 불러오지 못함. public URL을 확인해야 함.');
+  testImage = r.img; testUrl = r.url;
+  $('testImageBox').innerHTML = `<img src="${previewCanvas(r.img, 192)}"><div class="small mono">${escapeHtml(r.url)}</div>`;
+  return r;
 }
-async function predictSelected(){ const item=state.testItems[state.selectedTest]; if(!item) throw new Error('검증 이미지가 없음.'); const preds=await predictItem(item); renderPrediction(preds); }
-async function predictAll(){
-  const body=$('batchTable').querySelector('tbody'); body.innerHTML='';
-  for(let i=0;i<state.testItems.length;i++){ const preds=await predictItem(state.testItems[i]); body.innerHTML += `<tr><td>${i+1}</td><td>${escapeHtml(state.testItems[i].file)}</td><td>${escapeHtml(preds[0].className)}</td><td>${(preds[0].prob*100).toFixed(2)}%</td><td>${preds.map(p=>`${p.className}: ${(p.prob*100).toFixed(1)}%`).join(' / ')}</td></tr>`; await tf.nextFrame(); }
+
+async function predictTest(){
+  if(!model) throw new Error('모델이 아직 없음. 먼저 학습하거나 저장 모델을 불러와야 함.');
+  if(!testImage) await loadTestImage();
+  const x = imageToTensor(testImage).expandDims(0);
+  const pred = model.predict(x);
+  const arr = Array.from(await pred.data());
+  x.dispose(); pred.dispose();
+  lastPrediction = arr;
+  const names = loadedData?.map(c=>c.name) || CLASSES.map(c=>c.name);
+  const bestIdx = arr.indexOf(Math.max(...arr));
+  $('predictionBox').textContent = `예측 결과: ${names[bestIdx]} / 확률 ${(arr[bestIdx]*100).toFixed(2)}%`;
+  $('predictionBox').className = 'status ok';
+  $('probBars').innerHTML = names.map((name,i)=>`<div class="barRow"><b>${escapeHtml(name)}</b><div class="barBox"><div class="barFill" style="width:${Math.max(0,Math.min(100,arr[i]*100))}%"></div></div><span>${(arr[i]*100).toFixed(2)}%</span></div>`).join('');
+  switchTab('test');
+  renderWorkflow();
+  return arr;
 }
-async function saveMetadata(){
-  const blob=new Blob([JSON.stringify(state.metadata||{},null,2)],{type:'application/json'}); const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='cnn-two-class-metadata.json'; a.click(); URL.revokeObjectURL(a.href);
+
+async function loadSavedModelFromSupabase(){
+  clearLog(); setProgress(0); configReport();
+  setStatus('Supabase 저장 모델 로드 시도 중...', 'warn');
+  // metadata는 있으면 사용, 없어도 기본값 사용
+  try{
+    const metaR = await fetchJsonFromCandidates(rootFileCandidates(MODEL_FILES.meta));
+    const meta = metaR.json;
+    log('metadata 로드 성공: ' + metaR.url);
+    if(meta.imageSize) imageSize = Number(meta.imageSize) || imageSize;
+    if(Array.isArray(meta.classNames) && meta.classNames.length >= 2){
+      loadedData = meta.classNames.map((n,i)=>({name:n, label:i, items:[]}));
+    } else {
+      loadedData = CLASSES.map((c,i)=>({name:c.name, label:i, items:[]}));
+    }
+  }catch(e){
+    log('metadata 로드 실패. 기본값 apple/cherry 사용: ' + e.message);
+    loadedData = CLASSES.map((c,i)=>({name:c.name, label:i, items:[]}));
+  }
+  setProgress(20);
+  const modelPaths = rootFileCandidates(MODEL_FILES.model);
+  let lastErr = null;
+  for(const path of modelPaths){
+    const url = publicObjectUrl(path);
+    try{
+      log('모델 로드 시도: ' + url);
+      if(model){ try{ model.dispose(); }catch(e){} model=null; }
+      model = await tf.loadLayersModel(url + '?t=' + Date.now());
+      log('모델 로드 성공: ' + url);
+      setProgress(65);
+      renderWorkflow();
+      await loadTestImage();
+      await predictTest();
+      setProgress(100);
+      setStatus('저장된 모델을 불러와 test.jpg 검증 완료.', 'ok');
+      return;
+    }catch(e){
+      lastErr = e;
+      log('모델 로드 실패: ' + e.message);
+    }
+  }
+  throw new Error('Supabase 저장 모델을 불러오지 못함. model.json 안 weightsManifest의 path가 실제 weights.bin 이름과 같은지도 확인해야 함. 마지막 오류: ' + (lastErr?.message || 'unknown'));
 }
-async function loadSavedModel(){
-  const files=Array.from($('loadModelFiles').files||[]); const modelFile=files.find(f=>f.name.endsWith('.json')&&!f.name.includes('metadata')); const weightFiles=files.filter(f=>f.name.endsWith('.bin')); const meta=files.find(f=>f.name.includes('metadata'));
-  if(!modelFile||!weightFiles.length) throw new Error('model.json과 weights.bin을 함께 선택해야 함.');
-  if(state.model)state.model.dispose(); state.model=await tf.loadLayersModel(tf.io.browserFiles([modelFile,...weightFiles]));
-  if(meta){ state.metadata=JSON.parse(await meta.text()); state.classNames=state.metadata.classNames||state.classNames; }
-  renderWorkflow(); status('loadStatus','모델 불러오기 완료.','status ok');
+
+function renderWorkflow(){
+  const box = $('workflowBox');
+  if(!model){ box.innerHTML = '<div class="step"><strong>모델 없음</strong>학습 또는 모델 불러오기 필요</div>'; return; }
+  const layers = model.layers.map((l,i)=>{
+    const outShape = Array.isArray(l.outputShape) ? JSON.stringify(l.outputShape) : '-';
+    const params = l.countParams ? l.countParams() : 0;
+    return `<div class="step"><strong>${i+1}. ${escapeHtml(l.name)}</strong><span class="pill">${escapeHtml(l.getClassName())}</span><br><span class="small">출력: ${escapeHtml(outShape)}<br>파라미터: ${params.toLocaleString()}</span></div>`;
+  }).join('');
+  box.innerHTML = `<div class="step"><strong>입력</strong>${imageSize}×${imageSize}×3 RGB<br><span class="small">모든 사진을 같은 크기와 0~1 값으로 통일</span></div>` + layers;
 }
-$('oneClickBtn').onclick=runAll;
-$('onlyVerifyBtn').onclick=async()=>{try{await verifyDefault();}catch(e){alert(e.message)}};
-$('verifyBtn').onclick=async()=>{try{await verifyDefault();}catch(e){alert(e.message)}};
-$('extraTests').onchange=e=>handleExtraFiles(e.target.files);
-$('predictSelectedBtn').onclick=async()=>{try{await predictSelected();}catch(e){alert(e.message)}};
-$('predictAllBtn').onclick=async()=>{try{await predictAll();}catch(e){alert(e.message)}};
-$('formulaBtn').onclick=renderFormula; $('formulaLayer').onchange=renderFormula;
-$('saveModelBtn').onclick=async()=>{if(!state.model)return alert('학습된 모델이 없음.'); await state.model.save('downloads://cnn-two-class-model');};
-$('saveMetaBtn').onclick=saveMetadata; $('loadModelBtn').onclick=async()=>{try{await loadSavedModel();}catch(e){status('loadStatus',e.message,'status bad')}};
-window.addEventListener('load',()=>{setSteps(0); renderTrainSettings(); try{connect();}catch(e){status('connectionStatus',e.message,'status bad');} });
+
+async function showFormula(){
+  if(!model){ $('formulaBox').textContent='모델이 아직 없음.'; return; }
+  let text = '';
+  for(const layer of model.layers){
+    const weights = layer.getWeights();
+    if(weights.length){
+      text += `레이어: ${layer.name} (${layer.getClassName()})\n`;
+      for(let i=0;i<weights.length;i++){
+        const data = Array.from(await weights[i].data()).slice(0,8).map(v=>Number(v).toFixed(4));
+        text += `  W${i} shape=${JSON.stringify(weights[i].shape)} 일부값=[${data.join(', ')}]\n`;
+      }
+      text += '\n';
+    }
+  }
+  text += '예측 계산 흐름:\n이미지 x → Conv/ReLU/Pooling → Flatten → Dense → Softmax\n';
+  text += 'Softmax: P(class i)=exp(z_i)/(exp(z_apple)+exp(z_cherry))\n';
+  if(lastPrediction){
+    const names = loadedData?.map(c=>c.name) || CLASSES.map(c=>c.name);
+    text += '\n마지막 test.jpg 예측값:\n';
+    lastPrediction.forEach((p,i)=> text += `  ${names[i]} = ${(p*100).toFixed(2)}%\n`);
+  }
+  $('formulaBox').textContent = text || '표시할 가중치가 없음.';
+}
+
+$('diagnoseBtn').addEventListener('click', async()=>{try{await runDiagnosis();}catch(e){setStatus(e.message,'bad'); log(e.stack || e.message);}});
+$('runAllBtn').addEventListener('click', async()=>{try{await trainFromSupabase();}catch(e){setStatus(e.message,'bad'); log(e.stack || e.message);}});
+$('predictTestBtn').addEventListener('click', async()=>{try{await loadTestImage(); await predictTest();}catch(e){setStatus(e.message,'bad'); log(e.stack || e.message);}});
+$('loadSavedModelBtn').addEventListener('click', async()=>{try{await loadSavedModelFromSupabase();}catch(e){setStatus(e.message,'bad'); log(e.stack || e.message);}});
+$('formulaBtn').addEventListener('click', showFormula);
+$('saveManualBtn').addEventListener('click', ()=>{localStorage.setItem('manual_supabase_url', $('manualUrl').value.trim()); localStorage.setItem('manual_bucket', $('manualBucket').value.trim() || EXPECTED_BUCKET); configReport(); setStatus('브라우저 임시 설정 저장 완료. 다시 연결 진단을 눌러봐.', 'ok');});
+$('clearManualBtn').addEventListener('click', ()=>{localStorage.removeItem('manual_supabase_url'); localStorage.removeItem('manual_bucket'); configReport(); setStatus('브라우저 임시 설정 삭제 완료.', 'ok');});
+
+window.addEventListener('load', ()=>{
+  configReport(); renderWorkflow();
+  if(!window.APP_CONFIG){ setStatus('config.js가 로드되지 않았음. GitHub/Vercel에 config.js가 index.html과 같은 위치에 있는지 확인해야 함.', 'bad'); }
+  else if(!currentConfig().url){ setStatus('config.js는 로드됐지만 SUPABASE_URL이 비어 있음.', 'bad'); }
+  else { setStatus('대기 중. 먼저 연결 진단을 누르면 Supabase 연결 여부가 바로 보임.', ''); }
+});
 </script>
 </body>
 </html>
