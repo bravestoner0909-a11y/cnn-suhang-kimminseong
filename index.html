@@ -22,6 +22,12 @@
     .progress-wrap{height:24px;border:1px solid #000;border-radius:999px;overflow:hidden;background:#fff}.progress-bar{height:100%;width:0%;background:#000;transition:width .18s}.steps{display:grid;grid-template-columns:repeat(5,1fr);gap:8px;margin-top:10px}.step{border:1px solid var(--line);border-radius:12px;padding:8px;font-size:12px;background:#fff;color:#444}.step.active{border-color:#000;background:var(--mark);color:#000;font-weight:800}.step.done{background:#000;color:#fff;border-color:#000}
     table{width:100%;border-collapse:collapse;font-size:13px} th,td{border-bottom:1px solid #e8e8e8;text-align:left;padding:8px;vertical-align:top} th{background:#f7f7f7;position:sticky;top:0}.scroll{border:1px solid var(--line);border-radius:12px;overflow:auto;max-height:310px}
     .thumbgrid{display:grid;grid-template-columns:repeat(auto-fill,minmax(120px,1fr));gap:10px}.thumb{border:1px solid var(--line);border-radius:12px;padding:8px;background:#fff;text-align:center}.thumb img,.thumb canvas{width:100%;aspect-ratio:1/1;object-fit:contain;border:1px solid #eee;background:#fff}.thumb .cap{font-size:11px;color:#444;word-break:break-all;margin-top:5px}.thumb.selectable{cursor:pointer}.thumb.selected{outline:3px solid #000}
+    .colab-sample{display:grid;gap:10px;border:1px solid var(--line);border-radius:14px;padding:12px;background:#fff}
+    .colab-sample .head{font-weight:800;text-align:center;border-bottom:1px solid #eee;padding:6px 4px}
+    .colab-cell{border:1px solid var(--line);border-radius:12px;padding:8px;text-align:center;background:#fff}
+    .colab-cell img{width:100%;aspect-ratio:1/1;object-fit:contain;border:1px solid #eee;background:#fff}
+    .codebox{border:1px solid var(--line);border-radius:14px;background:#fff;padding:12px;font-family:Consolas,Menlo,monospace;font-size:12px;white-space:pre-wrap;overflow:auto;max-height:390px}
+    .summarybox{border:1px solid #000;border-radius:14px;background:#fff;padding:12px;font-family:Consolas,Menlo,monospace;font-size:12px;white-space:pre;overflow:auto;max-height:420px}
     .log{height:220px;overflow:auto;border:1px solid var(--line);border-radius:12px;padding:10px;font-family:Consolas,Menlo,monospace;font-size:12px;white-space:pre-wrap}.barline{height:16px;border:1px solid #000;border-radius:999px;overflow:hidden;background:#fff}.barline span{display:block;height:100%;background:#000;width:0%}.result{border:1px solid var(--line);border-radius:14px;padding:14px;background:#fff}.pill{display:inline-block;border:1px solid #000;border-radius:999px;padding:4px 8px;font-size:12px;margin:3px 4px 3px 0}
     .workflow{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px}.node{border:1px solid #000;border-radius:14px;padding:12px;background:#fff;min-height:120px}.node b{display:block}.tag{display:inline-block;border:1px solid #000;border-radius:999px;padding:2px 6px;font-size:11px;margin-top:6px}.formula{border:1px solid #000;border-radius:14px;background:#fff;padding:14px;min-height:140px}.status{border-left:4px solid #000;background:#f7f7f7;padding:10px 12px}.ok{background:var(--ok)}.bad{background:var(--bad)}
     canvas.chart{width:100%;height:240px;border:1px solid var(--line);border-radius:14px;background:#fff}.divider{height:1px;background:#e7e7e7;margin:14px 0}
@@ -37,6 +43,7 @@
   <div class="tabs">
     <button class="tab-btn active" data-tab="home">원버튼 실행</button>
     <button class="tab-btn" data-tab="prep">사전작업</button>
+    <button class="tab-btn" data-tab="colab">교사용 형식</button>
     <button class="tab-btn" data-tab="train">학습 기록</button>
     <button class="tab-btn" data-tab="flow">모델 워크플로우</button>
     <button class="tab-btn verify" data-tab="verify">이미지 검증</button>
@@ -89,6 +96,38 @@ test.jpg</div>
     <div class="card"><h2>파일 이름 저장 표</h2><div class="scroll"><table id="fileTable"><thead><tr><th>#</th><th>클래스</th><th>파일명</th><th>경로</th><th>로드</th><th>원본 크기</th><th>통일 크기</th></tr></thead><tbody></tbody></table></div></div>
     <div class="card"><h2>샘플 이미지</h2><div id="sampleGrid" class="thumbgrid"></div></div>
     <div class="card"><h2>형식 통일 미리보기</h2><p class="small">모든 사진은 같은 정사각형 크기, RGB 3채널, 0~1 숫자 범위로 변환된다.</p><div id="preGrid" class="thumbgrid"></div></div>
+  </section>
+
+  <section id="colab" class="tab">
+    <div class="card">
+      <h2>Colab 예시 형식: 샘플 이미지 배열</h2>
+      <p class="small">선생님 예시 코드의 <span class="mono">rows = 2, colums = 2, plt.subplots(...)</span> 흐름처럼, 클래스별 이미지를 2행 × 클래스 수 배열로 보여준다. 각 이미지 아래에는 원본 크기가 표시된다.</p>
+      <div id="colabSampleGrid" class="colab-sample">사전작업 실행 후 표시된다.</div>
+    </div>
+    <div class="two">
+      <div class="card">
+        <h2>샘플 배열 코드 대응</h2>
+        <div id="colabSampleCode" class="codebox">사전작업 실행 후 표시된다.</div>
+      </div>
+      <div class="card">
+        <h2>이미지 형식 통일 코드 대응</h2>
+        <div id="colabResizeCode" class="codebox">사전작업 실행 후 표시된다.</div>
+      </div>
+    </div>
+    <div class="two">
+      <div class="card">
+        <h2>Sequential 모델 코드 대응</h2>
+        <div id="modelCodeBox" class="codebox">학습 시작 후 표시된다.</div>
+      </div>
+      <div class="card">
+        <h2>model.summary() 형식</h2>
+        <div id="modelSummaryBox" class="summarybox">학습 시작 후 표시된다.</div>
+      </div>
+    </div>
+    <div class="card">
+      <h2>history = model.fit(..., verbose=1) 로그 형식</h2>
+      <div id="fitVerboseLog" class="log">학습 시작 후 표시된다.</div>
+    </div>
   </section>
 
   <section id="train" class="tab">
@@ -225,6 +264,148 @@ async function loadDataset(){
   if(minPerClass < 2) throw new Error(`학습 가능한 이미지가 너무 적음. 현재 최소 클래스 ${minPerClass}장만 로드됨. bucket 안 경로가 apple/apple1.jpg인지, 또는 cnn-images/apple/apple1.jpg처럼 한 번 더 들어갔는지 확인해야 함.`);
   return {ok,fail};
 }
+
+function renderColabSample(){
+  const cols = state.classNames.length || 2;
+  const rows = 2;
+  const names = state.classNames.length ? state.classNames : ['apple','cherry'];
+  $('colabSampleGrid').style.gridTemplateColumns = `repeat(${cols}, minmax(130px, 1fr))`;
+  let html = names.map(n=>`<div class="head">${escapeHtml(n)}</div>`).join('');
+  for(let r=0;r<rows;r++){
+    for(let c=0;c<cols;c++){
+      const cls = names[c];
+      const item = state.images.filter(i=>i.className===cls)[r];
+      if(item){
+        html += `<div class="colab-cell"><img src="${item.url}" alt=""><div class="cap">${escapeHtml(item.file)}<br>${escapeHtml(item.original)}</div></div>`;
+      }else{
+        html += `<div class="colab-cell"><div class="cap">이미지 없음</div></div>`;
+      }
+    }
+  }
+  $('colabSampleGrid').innerHTML = html || '사전작업 실행 후 표시된다.';
+  $('colabSampleCode').textContent =
+`rows = 2
+colums = ${cols}
+
+fig, axes = plt.subplots(nrows=rows, ncols=colums, figsize=(colums*4, rows*4))
+
+for num in range(1, rows*colums+1):
+    fig.add_subplot(rows, colums, num)
+    idx = num - 1
+    plt.imshow(img_arrs[idx], aspect='auto')
+    plt.xlabel(f'{img_arrs[idx].shape}', fontsize=12)
+
+fig.tight_layout()
+
+cols = ${JSON.stringify(names)}
+
+for folder_idx, ax in enumerate(axes[0]):
+    ax.set_title(cols[folder_idx])
+
+for idx, ax in enumerate(axes.flat):
+    ax.set_xticks([])
+    ax.set_yticks([])
+
+# 이 사이트에서는 위 작업을 HTML/CSS 그리드와 Canvas 전처리로 자동 생성함.`;
+  $('colabResizeCode').textContent =
+`from PIL import Image
+
+for image in ${names[0] || 'class_1'}_names:
+    img = Image.open(image_path)
+    img_resize = img.resize((${settings.inputSize}, ${settings.inputSize}))
+    img_resize.save(resized_path)
+
+# 이 사이트의 실제 전처리
+# 1. Supabase public URL에서 이미지 로드
+# 2. Canvas에 흰 배경을 깔고 비율 유지
+# 3. ${settings.inputSize}×${settings.inputSize} RGB 3채널로 통일
+# 4. tf.browser.fromPixels(...).toFloat().div(255)로 0~1 정규화`;
+}
+
+function renderModelCodeAndSummary(){
+  if(!state.model){
+    $('modelCodeBox').textContent = '학습 시작 후 표시된다.';
+    $('modelSummaryBox').textContent = '학습 시작 후 표시된다.';
+    return;
+  }
+  const outputUnits = state.classNames.length || 2;
+  $('modelCodeBox').textContent =
+`import tensorflow as tf
+tf.random.set_seed(3)
+
+model = tf.keras.models.Sequential([
+    # The first convolution
+    tf.keras.layers.Conv2D(16, (3, 3), activation='relu', input_shape=(${settings.inputSize}, ${settings.inputSize}, 3)),
+    tf.keras.layers.MaxPool2D(2, 2),
+
+    # The second convolution
+    tf.keras.layers.Conv2D(32, (3, 3), activation='relu'),
+    tf.keras.layers.MaxPool2D(2, 2),
+
+    # The third convolution
+    tf.keras.layers.Conv2D(64, (3, 3), activation='relu'),
+    tf.keras.layers.MaxPool2D(2, 2),
+
+    # Flatten
+    tf.keras.layers.Flatten(),
+
+    # Hidden layer
+    tf.keras.layers.Dense(128, activation='relu'),
+
+    # Output layer
+    tf.keras.layers.Dense(${outputUnits}, activation='softmax')
+])
+
+model.summary()
+
+model.compile(
+    loss='categorical_crossentropy',
+    optimizer=tf.keras.optimizers.Adam(learning_rate=${settings.lr}),
+    metrics=['accuracy']
+)`;
+  const lines=[];
+  lines.push('Model: "sequential"');
+  lines.push('_________________________________________________________________');
+  lines.push(' Layer (type)                 Output Shape              Param #   ');
+  lines.push('=================================================================');
+  let total = 0;
+  for(const l of state.model.layers){
+    const nameType = `${l.name} (${l.getClassName()})`;
+    const rawShape = l.outputShape || (l.output && l.output.shape) || 'multiple';
+    const shape = JSON.stringify(rawShape);
+    const params = l.countParams ? l.countParams() : 0;
+    total += params || 0;
+    lines.push(` ${nameType.padEnd(28).slice(0,28)} ${shape.padEnd(25).slice(0,25)} ${String(params).padStart(8)} `);
+  }
+  lines.push('=================================================================');
+  lines.push(`Total params: ${total.toLocaleString()}`);
+  lines.push(`Trainable params: ${total.toLocaleString()}`);
+  lines.push('Non-trainable params: 0');
+  lines.push('_________________________________________________________________');
+  $('modelSummaryBox').textContent = lines.join('\n');
+}
+
+function resetFitVerboseLog(sampleCount=0){
+  const steps = Math.max(1, Math.ceil(sampleCount / settings.batchSize));
+  $('fitVerboseLog').textContent =
+`history = model.fit(train_generator, steps_per_epoch=${steps}, epochs=${settings.epochs}, verbose=1)
+
+`;
+}
+
+function appendFitVerboseEpoch(epoch, logs, sampleCount=0){
+  const steps = Math.max(1, Math.ceil(sampleCount / settings.batchSize));
+  const acc = logs.acc ?? logs.accuracy ?? 0;
+  const valAcc = logs.val_acc ?? logs.val_accuracy ?? 0;
+  const bar = '==============================';
+  $('fitVerboseLog').textContent +=
+`Epoch ${epoch+1}/${settings.epochs}
+${steps}/${steps} [${bar}] - loss: ${Number(logs.loss||0).toFixed(4)} - accuracy: ${(acc*100).toFixed(2)}% - val_loss: ${Number(logs.val_loss||0).toFixed(4)} - val_accuracy: ${(valAcc*100).toFixed(2)}%
+
+`;
+  const box=$('fitVerboseLog'); box.scrollTop=box.scrollHeight;
+}
+
 function renderPrep(fileRows){
   const countMap={}; state.classNames.forEach(c=>countMap[c]=0); state.images.forEach(i=>countMap[i.className]++);
   const min=Math.min(...Object.values(countMap));
@@ -236,6 +417,7 @@ function renderPrep(fileRows){
   const samples=[]; state.classNames.forEach(c=>samples.push(...state.images.filter(i=>i.className===c).slice(0,4)));
   $('sampleGrid').innerHTML=samples.map(i=>`<div class="thumb"><img src="${i.url}" alt=""><div class="cap">${escapeHtml(i.className)}<br>${escapeHtml(i.file)}<br>${i.original}</div></div>`).join('');
   $('preGrid').innerHTML=samples.map(i=>{const data=i.canvas.toDataURL('image/jpeg',.9);return `<div class="thumb"><img src="${data}" alt=""><div class="cap">${escapeHtml(i.className)}<br>${i.unified}</div></div>`;}).join('');
+  renderColabSample();
 }
 function balancedItems(){
   const groups=state.classNames.map(c=>shuffle(state.images.filter(i=>i.className===c)));
@@ -281,11 +463,13 @@ function buildModel(){
   m.compile({optimizer:tf.train.adam(settings.lr),loss:'categoricalCrossentropy',metrics:['accuracy']});
   state.model=m;
   state.metadata={classNames:state.classNames,inputSize:settings.inputSize,bucket:state.bucket,createdAt:new Date().toISOString()};
+  renderModelCodeAndSummary();
 }
 async function trainModel(){
   renderTrainSettings();
   const {xs,ys,count}=buildTensors();
   buildModel();
+  resetFitVerboseLog(count);
   state.history=[];
   let bestVal=-1, wait=0;
   status('trainStatus',`학습 시작. 사용 샘플 ${count}개. 검증 ${Math.round(settings.validationSplit*100)}%.`,'status');
@@ -302,6 +486,7 @@ async function trainModel(){
       drawCharts();
       progress(50+Math.round((epoch+1)/settings.epochs*35),`학습 중: ${epoch+1}/${settings.epochs} epoch, 정확도 ${(acc*100).toFixed(1)}%, 검증 ${(valAcc*100).toFixed(1)}%`);
       log(`epoch ${epoch+1}: loss=${item.loss.toFixed(4)}, acc=${(acc*100).toFixed(1)}%, val_acc=${(valAcc*100).toFixed(1)}%`);
+      appendFitVerboseEpoch(epoch, logs, count);
       await tf.nextFrame();
     }
   }});
@@ -370,6 +555,7 @@ function renderWorkflow(){
   const usable=state.model.layers.filter(l=>l.getWeights().length>0);
   $('formulaLayer').innerHTML=usable.map((l,i)=>`<option value="${i}">${escapeHtml(l.name)} (${escapeHtml(l.getClassName())})</option>`).join('');
   if(usable.length) renderFormula();
+  renderModelCodeAndSummary();
 }
 async function renderFormula(){
   if(!state.model){$('formulaBox').textContent='학습 후 확인 가능.'; return;}
@@ -405,7 +591,7 @@ async function loadSavedModel(){
   if(!modelFile||!weightFiles.length) throw new Error('model.json과 weights.bin을 함께 선택해야 함.');
   if(state.model)state.model.dispose(); state.model=await tf.loadLayersModel(tf.io.browserFiles([modelFile,...weightFiles]));
   if(meta){ state.metadata=JSON.parse(await meta.text()); state.classNames=state.metadata.classNames||state.classNames; }
-  renderWorkflow(); status('loadStatus','모델 불러오기 완료.','status ok');
+  renderWorkflow(); renderModelCodeAndSummary(); status('loadStatus','모델 불러오기 완료.','status ok');
 }
 $('oneClickBtn').onclick=runAll;
 $('onlyVerifyBtn').onclick=async()=>{try{await verifyDefault();}catch(e){alert(e.message)}};
@@ -416,7 +602,7 @@ $('predictAllBtn').onclick=async()=>{try{await predictAll();}catch(e){alert(e.me
 $('formulaBtn').onclick=renderFormula; $('formulaLayer').onchange=renderFormula;
 $('saveModelBtn').onclick=async()=>{if(!state.model)return alert('학습된 모델이 없음.'); await state.model.save('downloads://cnn-two-class-model');};
 $('saveMetaBtn').onclick=saveMetadata; $('loadModelBtn').onclick=async()=>{try{await loadSavedModel();}catch(e){status('loadStatus',e.message,'status bad')}};
-window.addEventListener('load',()=>{setSteps(0); renderTrainSettings(); try{connect();}catch(e){status('connectionStatus',e.message,'status bad');} });
+window.addEventListener('load',()=>{setSteps(0); renderTrainSettings(); renderModelCodeAndSummary(); try{connect();}catch(e){status('connectionStatus',e.message,'status bad');} });
 </script>
 </body>
 </html>
