@@ -175,28 +175,54 @@ async function loadOne(path, clsName, label){
   const tensor=tf.tidy(()=>tf.browser.fromPixels(canvas,3).toFloat().div(255));
   return {className:clsName,label,path,file:path.split('/').pop(),url,bitmap,canvas,tensor,original:`${bitmap.width}×${bitmap.height}`,unified:`${settings.inputSize}×${settings.inputSize}×3`};
 }
+
+function classPathCandidates(c,n){
+  const bases=[`${c.folder}/${c.prefix}${n}`, `${state.bucket}/${c.folder}/${c.prefix}${n}`];
+  const exts=['jpg','JPG','jpeg','JPEG','png','PNG','webp','WEBP'];
+  return bases.flatMap(b=>exts.map(e=>`${b}.${e}`));
+}
+function testPathCandidates(){
+  const bases=['test', `${state.bucket}/test`];
+  const exts=['jpg','JPG','jpeg','JPEG','png','PNG','webp','WEBP'];
+  return bases.flatMap(b=>exts.map(e=>`${b}.${e}`));
+}
+async function loadFirstWorking(paths, clsName, label){
+  let lastErr=null;
+  for(const path of paths){
+    try{return await loadOne(path,clsName,label);}catch(e){lastErr=e;}
+  }
+  throw lastErr || new Error('이미지 로드 실패');
+}
+
 async function loadDataset(){
   state.images.forEach(i=>i.tensor?.dispose?.());
   state.images=[];
   state.classNames=state.classes.map(c=>c.name);
   const rows=[]; let ok=0; let fail=0;
+  const totalExpected=state.classes.reduce((sum,c)=>sum+(c.end-c.start+1),0);
   for(let ci=0; ci<state.classes.length; ci++){
     const c=state.classes[ci];
     for(let n=c.start; n<=c.end; n++){
-      const path=`${c.folder}/${c.prefix}${n}.${c.ext}`;
-      let row={className:c.name,file:`${c.prefix}${n}.${c.ext}`,path,loaded:'대기',original:'—',unified:`${settings.inputSize}×${settings.inputSize}×3`};
+      const paths=classPathCandidates(c,n);
+      let row={className:c.name,file:`${c.prefix}${n}.jpg`,path:paths[0],loaded:'대기',original:'—',unified:`${settings.inputSize}×${settings.inputSize}×3`};
       try{
-        const item=await loadOne(path,c.name,ci);
+        const item=await loadFirstWorking(paths,c.name,ci);
         state.images.push(item); ok++;
+        row.path=item.path; row.file=item.file;
         row.loaded='성공'; row.original=item.original;
-      }catch(e){ fail++; row.loaded='실패: '+e.message; }
+      }catch(e){
+        fail++;
+        row.loaded='실패: '+e.message;
+        row.path=paths.slice(0,4).join(' 또는 ');
+      }
       rows.push(row);
-      progress(10+Math.round((ok+fail)/(state.classes.length*20)*28),`이미지 불러오는 중: 성공 ${ok}장 / 실패 ${fail}장`);
+      progress(10+Math.round((ok+fail)/totalExpected*28),`이미지 불러오는 중: 성공 ${ok}장 / 실패 ${fail}장`);
       await tf.nextFrame();
     }
   }
   renderPrep(rows);
-  if(state.images.length < state.classes.length*2) throw new Error('학습 가능한 이미지가 너무 적음. Supabase 파일명/공개 bucket을 확인해야 함.');
+  const minPerClass = Math.min(...state.classNames.map(c=>state.images.filter(i=>i.className===c).length));
+  if(minPerClass < 2) throw new Error(`학습 가능한 이미지가 너무 적음. 현재 최소 클래스 ${minPerClass}장만 로드됨. bucket 안 경로가 apple/apple1.jpg인지, 또는 cnn-images/apple/apple1.jpg처럼 한 번 더 들어갔는지 확인해야 함.`);
   return {ok,fail};
 }
 function renderPrep(fileRows){
@@ -295,8 +321,15 @@ function drawLine(canvasId, data, key, label){
 }
 function drawCharts(){drawLine('accChart',state.history,'acc','training accuracy'); drawLine('lossChart',state.history,'loss','training loss');}
 async function loadDefaultTest(){
-  const path='test.jpg'; const url=publicUrl(path); const bitmap=await fetchImageBitmap(url); const canvas=drawToCanvas(bitmap); const tensor=tf.tidy(()=>tf.browser.fromPixels(canvas,3).toFloat().div(255));
-  state.testItems.forEach(i=>i.tensor?.dispose?.()); state.testItems=[{file:'test.jpg',path,url,bitmap,canvas,tensor,original:`${bitmap.width}×${bitmap.height}`}]; state.selectedTest=0; renderTestGrid(); return state.testItems[0];
+  const paths=testPathCandidates();
+  let lastErr=null;
+  for(const path of paths){
+    try{
+      const url=publicUrl(path); const bitmap=await fetchImageBitmap(url); const canvas=drawToCanvas(bitmap); const tensor=tf.tidy(()=>tf.browser.fromPixels(canvas,3).toFloat().div(255));
+      state.testItems.forEach(i=>i.tensor?.dispose?.()); state.testItems=[{file:path.split('/').pop(),path,url,bitmap,canvas,tensor,original:`${bitmap.width}×${bitmap.height}`}]; state.selectedTest=0; renderTestGrid(); return state.testItems[0];
+    }catch(e){lastErr=e;}
+  }
+  throw lastErr || new Error('test.jpg 로드 실패');
 }
 function renderTestGrid(){
   $('testGrid').innerHTML=state.testItems.map((i,idx)=>`<div class="thumb selectable ${idx===state.selectedTest?'selected':''}" data-i="${idx}"><img src="${i.canvas?i.canvas.toDataURL('image/jpeg',.9):i.url}" alt=""><div class="cap">${escapeHtml(i.file)}<br>${escapeHtml(i.original||'')}</div></div>`).join('');
