@@ -1,4 +1,4 @@
-name: Supabase Keep Alive
+name: Supabase DB Keep Alive
 
 on:
   schedule:
@@ -10,6 +10,11 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - name: Call Supabase test image
+      - name: Call Supabase Postgres REST API
         run: |
-          curl -L "https://zqdpfboagniulpqvukni.supabase.co/storage/v1/object/public/cnn-images/test.jpg"
+          curl -sS -f -X GET "${SUPABASE_URL}/rest/v1/keepalive_ping?select=id,last_seen&limit=1" \
+            -H "apikey: ${SUPABASE_ANON_KEY}" \
+            -H "Authorization: Bearer ${SUPABASE_ANON_KEY}"
+        env:
+          SUPABASE_URL: "https://zqdpfboagniulpqvukni.supabase.co"
+          SUPABASE_ANON_KEY: "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InpxZHBmYm9hZ25pdWxwcXZ1a25pIiwicm9sZSI6ImFub24iLCJpYXQiOjE3ODA2ODI4NzAsImV4cCI6MjA5NjI1ODg3MH0.tk7HLbBg8vEIOV3v3i7-jD0aYXicHjCyy50XJedpFhU"
