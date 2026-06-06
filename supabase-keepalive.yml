@@ -1,0 +1,22 @@
+name: Supabase Keep Alive
+
+on:
+  schedule:
+    # 매일 한국시간 오전 9시 실행 = UTC 00:00
+    - cron: "0 0 * * *"
+  workflow_dispatch:
+
+jobs:
+  keepalive:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Call Supabase public storage object
+        run: |
+          echo "Calling Supabase keep-alive URL..."
+          STATUS=$(curl -L -s -o /dev/null -w "%{http_code}" "${{ secrets.SUPABASE_KEEPALIVE_URL }}")
+          echo "HTTP status: $STATUS"
+          if [ "$STATUS" -lt 200 ] || [ "$STATUS" -ge 400 ]; then
+            echo "Keep-alive request failed. Check SUPABASE_KEEPALIVE_URL secret."
+            exit 1
+          fi
+          echo "Supabase keep-alive request succeeded."
