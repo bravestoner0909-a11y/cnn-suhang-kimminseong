@@ -1,0 +1,625 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>CNN 이미지 분류 실험실 v5</title>
+  <script src="https://cdn.jsdelivr.net/npm/@tensorflow/tfjs@4.22.0/dist/tf.min.js"></script>
+  <style>
+    :root{--bg:#fff;--fg:#000;--muted:#444;--line:#d8d8d8;--soft:#f7f7f7;--radius:16px}
+    *{box-sizing:border-box}
+    body{margin:0;background:#fff;color:#000;font-family:Arial,"Noto Sans KR",sans-serif;line-height:1.5}
+    header{padding:24px;border-bottom:1px solid var(--line);position:sticky;top:0;background:#fff;z-index:20}
+    h1{margin:0;font-size:25px;letter-spacing:-.03em} h2{margin:0 0 12px;font-size:20px;letter-spacing:-.03em} h3{margin:0 0 8px;font-size:16px}
+    p{margin:7px 0}.sub{margin-top:7px;color:#444;font-size:14px;max-width:1150px}
+    main{max-width:1320px;margin:0 auto;padding:22px}
+    .tabs{display:flex;gap:8px;flex-wrap:wrap;margin-bottom:18px}.tab-btn{border:1px solid #d8d8d8;background:#fff;color:#000;border-radius:999px;padding:10px 14px;cursor:pointer;font-weight:700}.tab-btn.active{background:#000;color:#fff;border-color:#000}
+    .tab{display:none}.tab.active{display:block}
+    .grid{display:grid;grid-template-columns:390px 1fr;gap:18px}.two-col{display:grid;grid-template-columns:1fr 1fr;gap:18px}.three-col{display:grid;grid-template-columns:1fr 1fr 1fr;gap:18px}
+    .card{border:1px solid #d8d8d8;border-radius:var(--radius);background:#fff;padding:18px;margin-bottom:18px}.soft{background:#f7f7f7}
+    label{display:block;font-size:13px;font-weight:700;margin:10px 0 6px} input,select,button,textarea{font:inherit;color:#000}
+    input[type="file"],input[type="number"],input[type="text"],select,textarea{width:100%;border:1px solid #d8d8d8;border-radius:10px;background:#fff;padding:10px}
+    input[type="checkbox"]{transform:translateY(1px)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:10px}.row3{display:grid;grid-template-columns:1fr 1fr 1fr;gap:10px}
+    .btn{border:1px solid #000;background:#000;color:#fff;border-radius:12px;padding:11px 13px;cursor:pointer;font-weight:700}.btn.secondary{background:#fff;color:#000;border-color:#000}.btn:disabled{opacity:.42;cursor:not-allowed}.btn.full{width:100%}.btn.tiny{padding:6px 8px;border-radius:9px;font-size:12px}
+    .small{font-size:12px;color:#444}.mono{font-family:Consolas,Menlo,monospace;font-size:12px}.pill{display:inline-block;border:1px solid #d8d8d8;border-radius:999px;padding:4px 8px;margin:3px 4px 3px 0;background:#fff;font-size:12px}.warn{border-left:4px solid #000;padding:10px 12px;background:#f7f7f7}.ok{border-left:4px solid #000;padding:10px 12px;background:#fff}
+    .progress-wrap{border:1px solid #d8d8d8;border-radius:999px;overflow:hidden;height:22px;background:#fff}.progress-bar{height:100%;width:0%;background:#000;transition:width .2s ease}.step-list{display:grid;grid-template-columns:repeat(4,1fr);gap:8px;margin-top:10px}.step{border:1px solid #d8d8d8;border-radius:12px;padding:8px;background:#fff;font-size:12px;color:#444}.step.active{border-color:#000;color:#000;font-weight:700;background:#f7f7f7}.step.done{background:#000;color:#fff;border-color:#000}
+    table{width:100%;border-collapse:collapse;font-size:13px} th,td{border-bottom:1px solid #e7e7e7;text-align:left;padding:8px;vertical-align:top} th{background:#f7f7f7}
+    canvas.chart{width:100%;height:230px;border:1px solid #d8d8d8;border-radius:14px;background:#fff}.preview-grid,.feature-grid,.file-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(112px,1fr));gap:10px}.thumb{border:1px solid #d8d8d8;border-radius:12px;padding:8px;background:#fff;text-align:center;cursor:default}.thumb.selectable{cursor:pointer}.thumb.selected{outline:3px solid #000}.thumb img,.thumb canvas{width:100%;aspect-ratio:1/1;object-fit:contain;border:1px solid #eee;background:#fff}.thumb .cap{font-size:11px;color:#444;margin-top:5px;word-break:break-all}.thumb .btn{width:100%;margin-top:6px}
+    .log{height:180px;overflow:auto;border:1px solid #d8d8d8;border-radius:12px;background:#fff;padding:10px;font-family:Consolas,Menlo,monospace;font-size:12px;white-space:pre-wrap}.result-box{border:1px solid #d8d8d8;border-radius:14px;padding:12px;background:#fff}.bar-line{height:14px;border:1px solid #d8d8d8;border-radius:999px;overflow:hidden;background:#fff}.bar-line span{display:block;height:100%;background:#000;width:0%}
+    .class-card{border:1px solid #d8d8d8;border-radius:14px;background:#fff;padding:12px;margin:10px 0}.class-title{display:flex;justify-content:space-between;gap:10px;align-items:center}.class-title b{font-size:14px}
+    .workflow{display:grid;grid-template-columns:repeat(6,1fr);gap:10px}.node{border:1px solid #000;border-radius:14px;padding:12px;min-height:112px;background:#fff;position:relative}.node:after{content:"→";position:absolute;right:-12px;top:42%;font-weight:900;background:#fff}.node:last-child:after{content:""}.node b{display:block;margin-bottom:6px}.node .mono{color:#000}.node.done{background:#f7f7f7}
+    .shape-list{display:grid;grid-template-columns:1fr 1fr;gap:10px}.shape-item{border:1px solid #d8d8d8;border-radius:12px;padding:10px;background:#fff}
+    @media(max-width:950px){.grid,.two-col,.three-col,.workflow{grid-template-columns:1fr}.step-list{grid-template-columns:1fr 1fr}.node:after{content:"↓";right:12px;top:auto;bottom:-18px}.node:last-child:after{content:""}}
+  </style>
+</head>
+<body>
+<header>
+  <h1>CNN 이미지 분류 실험실 v5</h1>
+  <p class="sub">클래스를 기본 2개로 시작하고 필요하면 추가한다. 모든 사진은 같은 크기·RGB·0~1 숫자 범위로 통일되며, 모델 워크플로우와 반복 예측을 확인할 수 있다.</p>
+</header>
+<main>
+  <div class="tabs">
+    <button class="tab-btn active" data-tab="train">학습</button>
+    <button class="tab-btn" data-tab="workflowTab">워크플로우 시각화</button>
+    <button class="tab-btn" data-tab="test">반복 예측</button>
+    <button class="tab-btn" data-tab="modelio">모델 저장/불러오기</button>
+    <button class="tab-btn" data-tab="explain">설명</button>
+  </div>
+
+  <section id="train" class="tab active">
+    <div class="grid">
+      <div>
+        <div class="card">
+          <h2>1. 클래스별 사진 업로드</h2>
+          <p class="small">기본은 2개 클래스다. 필요하면 클래스를 더 추가할 수 있다.</p>
+          <div id="classInputs"></div>
+          <button id="addClassBtn" class="btn secondary full">클래스 추가</button>
+        </div>
+
+        <div class="card">
+          <h2>2. 이미지 형식 통일</h2>
+          <div class="row">
+            <div><label>입력 이미지 크기</label><select id="imageSize"><option>64</option><option>96</option><option selected>128</option><option>160</option><option>192</option><option>224</option><option>256</option><option>320</option><option>384</option><option>448</option><option>512</option></select></div>
+            <div><label>맞춤 방식</label><select id="fitMode"><option value="contain" selected>여백 유지</option><option value="cover">중앙 자르기</option></select></div>
+          </div>
+          <div class="row">
+            <div><label>클래스당 최대 사용 장수</label><input id="maxPerClass" type="number" min="5" max="3000" value="250"></div>
+            <div><label>검증 비율</label><select id="valRatio"><option value="0.1">10%</option><option value="0.2" selected>20%</option><option value="0.3">30%</option></select></div>
+          </div>
+          <label><input id="balanceClasses" type="checkbox" checked> 모든 클래스 장수를 작은 클래스 기준으로 맞추기</label>
+          <label><input id="autoAdjust" type="checkbox" checked> 데이터가 적으면 과적합 방지 설정 자동 적용</label>
+        </div>
+
+        <div class="card">
+          <h2>3. 모델 설정</h2>
+          <div class="row">
+            <div><label>컨볼루션 블록 수</label><select id="convBlocks"><option>1</option><option>2</option><option selected>3</option><option>4</option><option>5</option><option>6</option></select></div>
+            <div><label>처음 필터 수</label><select id="baseFilters"><option>8</option><option selected>16</option><option>32</option><option>64</option></select></div>
+          </div>
+          <div class="row">
+            <div><label>은닉층 수</label><select id="denseLayers"><option selected>1</option><option>2</option><option>3</option><option>4</option></select></div>
+            <div><label>은닉층 뉴런 수</label><select id="denseUnits"><option>32</option><option selected>64</option><option>128</option><option>256</option></select></div>
+          </div>
+          <div class="row">
+            <div><label>드롭아웃</label><select id="dropout"><option value="0">0</option><option value="0.2">0.2</option><option value="0.35" selected>0.35</option><option value="0.5">0.5</option></select></div>
+            <div><label>학습률</label><select id="lr"><option value="0.0005">0.0005</option><option value="0.001" selected>0.001</option><option value="0.003">0.003</option></select></div>
+          </div>
+          <div class="row">
+            <div><label>에포크</label><input id="epochs" type="number" min="1" max="100" value="15"></div>
+            <div><label>배치 크기</label><select id="batchSize"><option>8</option><option selected>16</option><option>32</option><option>64</option></select></div>
+          </div>
+          <label><input id="augmentation" type="checkbox" checked> 학습 이미지 증강 사용</label>
+        </div>
+
+        <button id="startBtn" class="btn full">학습 시작</button>
+        <div style="height:8px"></div>
+        <button id="stopBtn" class="btn secondary full" disabled>학습 중단</button>
+      </div>
+
+      <div>
+        <div class="card">
+          <h2>진행 상황</h2>
+          <div class="progress-wrap"><div id="progressBar" class="progress-bar"></div></div>
+          <p id="progressText" class="mono">대기 중</p>
+          <div class="step-list" id="steps"></div>
+        </div>
+
+        <div class="two-col">
+          <div class="card"><h2>데이터 진단</h2><div id="dataDiag" class="warn">아직 사진을 넣지 않았음.</div><table id="dataTable"><tbody></tbody></table></div>
+          <div class="card"><h2>자동 조정 결과</h2><div id="adjustDiag" class="ok">학습 전 자동 조정 결과가 여기에 표시됨.</div><table id="adjustTable"><tbody></tbody></table></div>
+        </div>
+
+        <div class="two-col">
+          <div class="card"><h2>손실 그래프</h2><canvas id="lossChart" class="chart" width="760" height="260"></canvas></div>
+          <div class="card"><h2>정확도 그래프</h2><canvas id="accChart" class="chart" width="760" height="260"></canvas></div>
+        </div>
+        <div class="card"><h2>학습 로그</h2><div id="log" class="log"></div></div>
+      </div>
+    </div>
+  </section>
+
+  <section id="workflowTab" class="tab">
+    <div class="card">
+      <h2>모델 워크플로우 시각화</h2>
+      <p class="small">여기서는 모델이 사진을 어떻게 처리하는지 단계별로 보여준다. 시각화는 별도 임시 모델을 만들지 않아서 원래 모델 레이어가 망가지지 않는다.</p>
+      <input id="workflowFiles" type="file" accept="image/*" multiple />
+      <div id="workflowFileGrid" class="file-grid" style="margin-top:12px"></div>
+      <button id="workflowBtn" class="btn">선택한 사진으로 워크플로우 실행</button>
+    </div>
+    <div class="card">
+      <h2>흐름도</h2>
+      <div id="workflowNodes" class="workflow">
+        <div class="node"><b>1. 입력</b><span class="small">사진 선택</span></div>
+        <div class="node"><b>2. 전처리</b><span class="small">크기·RGB 통일</span></div>
+        <div class="node"><b>3. CNN</b><span class="small">컨볼루션 계산</span></div>
+        <div class="node"><b>4. Flatten</b><span class="small">벡터화</span></div>
+        <div class="node"><b>5. Dense</b><span class="small">퍼셉트론 계산</span></div>
+        <div class="node"><b>6. Softmax</b><span class="small">확률 출력</span></div>
+      </div>
+    </div>
+    <div class="two-col">
+      <div class="card"><h2>전처리 결과</h2><div id="workflowPreview" class="preview-grid"></div></div>
+      <div class="card"><h2>레이어별 형태 변화</h2><div id="shapeBox" class="shape-list"></div></div>
+    </div>
+    <div class="two-col">
+      <div class="card"><h2>첫 컨볼루션 특징맵</h2><div id="featureMaps" class="feature-grid"></div></div>
+      <div class="card"><h2>최종 예측과 퍼셉트론 해석</h2><div id="workflowResult" class="result-box">아직 실행하지 않았음.</div></div>
+    </div>
+  </section>
+
+  <section id="test" class="tab">
+    <div class="card">
+      <h2>여러 사진 반복 예측</h2>
+      <p class="small">여러 장을 한 번에 넣고, 원하는 사진만 선택해서 예측하거나 전체 사진을 순서대로 예측할 수 있다.</p>
+      <input id="testFiles" type="file" accept="image/*" multiple />
+      <div id="testFileGrid" class="file-grid" style="margin-top:12px"></div>
+      <button id="testSelectedBtn" class="btn">선택한 사진 예측</button>
+      <button id="testAllBtn" class="btn secondary">전체 사진 예측</button>
+    </div>
+    <div class="two-col">
+      <div class="card"><h2>선택 사진 전처리</h2><div id="testPreview" class="preview-grid"></div></div>
+      <div class="card"><h2>예측 결과</h2><div id="predResult" class="result-box">아직 예측하지 않았음.</div></div>
+    </div>
+    <div class="card"><h2>전체 예측 기록</h2><div id="batchPredictions" class="result-box">아직 전체 예측을 실행하지 않았음.</div></div>
+  </section>
+
+  <section id="modelio" class="tab">
+    <div class="two-col">
+      <div class="card">
+        <h2>모델 다운로드</h2>
+        <p>학습 후 TensorFlow.js 모델 파일과 메타데이터 파일을 저장한다.</p>
+        <p class="small">저장되는 파일: <b>cnn-multiclass-model.json</b>, <b>cnn-multiclass-model.weights.bin</b>, <b>cnn-multiclass-metadata.json</b></p>
+        <button id="downloadModelBtn" class="btn" disabled>모델 다운로드</button>
+        <button id="saveBrowserBtn" class="btn secondary" disabled>브라우저에 임시 저장</button>
+      </div>
+      <div class="card">
+        <h2>모델 다시 불러오기</h2>
+        <p>나중에 다시 쓸 때는 model.json, weights.bin, metadata.json을 같이 선택하면 된다.</p>
+        <input id="loadModelFiles" type="file" multiple accept=".json,.bin,application/json,application/octet-stream" />
+        <button id="loadModelBtn" class="btn">모델 불러오기</button>
+        <div id="loadStatus" class="warn">아직 불러온 모델 없음.</div>
+      </div>
+    </div>
+  </section>
+
+  <section id="explain" class="tab">
+    <div class="card">
+      <h2>이번 버전에서 고친 점</h2>
+      <p>이전 오류였던 <b>Layer 'conv_1' is already disposed</b>는 시각화 과정에서 원래 모델과 레이어를 공유하는 임시 모델을 만들고 dispose하면서 발생할 수 있다. 이번 버전은 레이어를 직접 순서대로 통과시키고 중간 텐서만 폐기하므로, 모델 자체는 예측 후에도 살아 있다.</p>
+      <p>따라서 사진을 여러 번 업로드하고 반복 예측해도 같은 모델을 계속 사용할 수 있다.</p>
+    </div>
+    <div class="card">
+      <h2>과적합이란?</h2>
+      <p>과적합은 모델이 학습 사진을 너무 외워서 처음 보는 사진을 잘 못 맞히는 상태다. 학습 정확도는 높아지는데 검증 정확도는 낮거나 검증 손실이 계속 커지면 과적합을 의심한다.</p>
+      <p>이 프로그램은 데이터가 적을 때 CNN 깊이를 줄이고, 드롭아웃과 이미지 증강을 강화하며, 검증 손실이 여러 번 나빠지면 조기 종료한다.</p>
+    </div>
+    <div class="card">
+      <h2>사진 형식 통일</h2>
+      <p>JPG, PNG, WebP, BMP, GIF 등 입력 형식이 달라도 캔버스에 다시 그려서 같은 정사각형 RGB 이미지로 바꾼다. 그 뒤 픽셀값을 0~255가 아니라 0~1 범위의 숫자로 정규화한다.</p>
+    </div>
+  </section>
+</main>
+
+<script>
+const $ = (id)=>document.getElementById(id);
+const state = {
+  classCount:2,
+  model:null,
+  metadata:null,
+  history:{loss:[],val_loss:[],acc:[],val_acc:[]},
+  stop:false,
+  trainTensors:null,
+  valTensors:null,
+  currentSettings:null,
+  testFiles:[],
+  selectedTestIndex:0,
+  workflowFiles:[],
+  selectedWorkflowIndex:0
+};
+const stepNames = ['파일 확인','형식 통일','데이터 진단','모델 구성','레이어 계산','가중치 조정','검증','저장 준비'];
+
+function initSteps(){ $('steps').innerHTML = stepNames.map((s,i)=>`<div class="step" id="step${i}">${i+1}. ${s}</div>`).join(''); }
+function setProgress(p, text, stepIndex){
+  $('progressBar').style.width = Math.max(0,Math.min(100,p))+'%';
+  $('progressText').textContent = text;
+  stepNames.forEach((_,i)=>{ const el=$('step'+i); if(el) el.className='step'+(i<stepIndex?' done':i===stepIndex?' active':''); });
+}
+function log(msg){ const box=$('log'); box.textContent += `[${new Date().toLocaleTimeString()}] ${msg}\n`; box.scrollTop = box.scrollHeight; }
+function shuffle(arr){ for(let i=arr.length-1;i>0;i--){ const j=Math.floor(Math.random()*(i+1)); [arr[i],arr[j]]=[arr[j],arr[i]];} return arr; }
+function sleepFrame(){ return tf.nextFrame(); }
+function bytes(n){ if(n<1024) return n+' B'; if(n<1024*1024) return (n/1024).toFixed(1)+' KB'; return (n/1024/1024).toFixed(1)+' MB'; }
+function cleanName(v,fallback){ const s=(v||'').trim(); return s || fallback; }
+function safeId(i){ return 'classSlot_'+i; }
+
+function renderClassInputs(){
+  const box=$('classInputs');
+  const old=[];
+  document.querySelectorAll('.class-card').forEach(card=>{
+    const idx=parseInt(card.dataset.index,10);
+    const name=card.querySelector('.class-name')?.value;
+    old[idx]={name};
+  });
+  box.innerHTML='';
+  for(let i=0;i<state.classCount;i++){
+    const div=document.createElement('div'); div.className='class-card'; div.dataset.index=i;
+    div.innerHTML=`
+      <div class="class-title"><b>클래스 ${i+1}</b>${state.classCount>2?`<button class="btn tiny secondary remove-class" data-index="${i}">삭제</button>`:''}</div>
+      <label>클래스 이름</label>
+      <input class="class-name" type="text" value="${old[i]?.name || (i===0?'class_1':i===1?'class_2':'class_'+(i+1))}" />
+      <label>이 클래스 사진 여러 장</label>
+      <input class="class-files" type="file" accept="image/*" multiple />
+      <p class="small">현재 선택: <span class="file-count">0장</span></p>
+    `;
+    box.appendChild(div);
+  }
+  document.querySelectorAll('.class-files').forEach(input=>input.addEventListener('change',()=>{ updateFileCounts(); quickDiagnose(); }));
+  document.querySelectorAll('.class-name').forEach(input=>input.addEventListener('input',quickDiagnose));
+  document.querySelectorAll('.remove-class').forEach(btn=>btn.addEventListener('click',()=>{ removeClass(parseInt(btn.dataset.index,10)); }));
+  updateFileCounts(); quickDiagnose();
+}
+function addClass(){ state.classCount++; renderClassInputs(); }
+function removeClass(index){ if(state.classCount<=2) return; state.classCount--; renderClassInputs(); }
+function updateFileCounts(){
+  document.querySelectorAll('.class-card').forEach(card=>{
+    const count=Array.from(card.querySelector('.class-files').files||[]).filter(f=>f.type.startsWith('image/')).length;
+    card.querySelector('.file-count').textContent=count+'장';
+  });
+}
+function readClasses(){
+  return Array.from(document.querySelectorAll('.class-card')).map((card,i)=>({
+    index:i,
+    name:cleanName(card.querySelector('.class-name').value, 'class_'+(i+1)),
+    files:Array.from(card.querySelector('.class-files').files||[]).filter(f=>f.type.startsWith('image/'))
+  }));
+}
+function readSettings(){
+  const classes=readClasses();
+  return {
+    classes,
+    classNames:classes.map(c=>c.name),
+    numClasses:classes.length,
+    imageSize:parseInt($('imageSize').value,10), fitMode:$('fitMode').value,
+    maxPerClass:parseInt($('maxPerClass').value,10), valRatio:parseFloat($('valRatio').value),
+    balanceClasses:$('balanceClasses').checked, autoAdjust:$('autoAdjust').checked,
+    convBlocks:parseInt($('convBlocks').value,10), baseFilters:parseInt($('baseFilters').value,10),
+    denseLayers:parseInt($('denseLayers').value,10), denseUnits:parseInt($('denseUnits').value,10),
+    dropout:parseFloat($('dropout').value), lr:parseFloat($('lr').value),
+    epochs:parseInt($('epochs').value,10), batchSize:parseInt($('batchSize').value,10), augmentation:$('augmentation').checked
+  };
+}
+function applySettings(meta){
+  if(meta.classNames){ state.classCount=Math.max(2, meta.classNames.length); renderClassInputs(); document.querySelectorAll('.class-card').forEach((card,i)=>{ card.querySelector('.class-name').value=meta.classNames[i]||('class_'+(i+1)); }); }
+  $('imageSize').value = String(meta.imageSize || 128); $('fitMode').value = meta.fitMode || 'contain';
+}
+function quickDiagnose(){ try{ const s=readSettings(); const diag=diagnoseData(s); renderAdjust(adjustedSettings(diag,s)); }catch(e){} }
+
+function diagnoseData(settings){
+  const counts=settings.classes.map(c=>c.files.length);
+  const total=counts.reduce((a,b)=>a+b,0);
+  const min=counts.length?Math.min(...counts):0;
+  const max=counts.length?Math.max(...counts):0;
+  const empty=settings.classes.filter(c=>c.files.length===0).map(c=>c.name);
+  let msg='', level='ok';
+  if(settings.numClasses<2){ msg='클래스는 최소 2개 필요함.'; level='warn'; }
+  else if(empty.length){ msg='사진이 없는 클래스가 있음: '+empty.join(', '); level='warn'; }
+  else if(min<5){ msg='데이터가 매우 적음. 학습은 가능해도 과적합 위험이 큼. 클래스당 최소 20장 이상 권장.'; level='warn'; }
+  else if(min<30){ msg='데이터가 적은 편. 이미지 증강, 드롭아웃, 얕은 모델을 권장.'; level='warn'; }
+  else if(min<80){ msg='시현용으로는 가능함. 검증 정확도와 검증 손실을 함께 확인해야 함.'; }
+  else { msg='시현용으로는 충분한 편. 단, 사진 배경이 한 클래스에만 치우치면 배경을 외울 수 있음.'; }
+  const imbalance = min>0 ? max/min : Infinity;
+  if(isFinite(imbalance) && imbalance>=2){ msg += ' 클래스별 장수 차이가 커서 균형 맞춤을 권장.'; level='warn'; }
+  $('dataDiag').className = level==='warn'?'warn':'ok'; $('dataDiag').textContent=msg;
+  $('dataTable').querySelector('tbody').innerHTML = settings.classes.map((c,i)=>`<tr><th>${i+1}. ${c.name}</th><td>${c.files.length}장</td></tr>`).join('') +
+    `<tr><th>전체</th><td>${total}장</td></tr><tr><th>불균형 비율</th><td>${isFinite(imbalance)?imbalance.toFixed(2):'계산 불가'} : 1</td></tr>`;
+  return {counts,total,min,max,imbalance,emptyCount:empty.length};
+}
+function adjustedSettings(diag,s){
+  const out={...s}; let notes=[];
+  if(!s.autoAdjust){ notes.push('자동 조정 꺼짐. 사용자가 선택한 설정 그대로 사용.'); return {settings:out, notes}; }
+  if(diag.min<30){ out.convBlocks=Math.min(out.convBlocks,2); out.denseLayers=Math.min(out.denseLayers,1); out.dropout=Math.max(out.dropout,0.5); out.augmentation=true; out.epochs=Math.min(out.epochs,20); notes.push('데이터가 적어서 CNN 깊이를 2블록 이하로 제한하고 드롭아웃을 강화함.'); }
+  else if(diag.min<80){ out.convBlocks=Math.min(out.convBlocks,3); out.dropout=Math.max(out.dropout,0.35); out.augmentation=true; notes.push('데이터가 많지 않아서 이미지 증강과 중간 수준 드롭아웃을 유지함.'); }
+  if(out.imageSize>=384){ out.batchSize=Math.min(out.batchSize,8); notes.push('이미지 크기가 커서 배치 크기를 8 이하로 줄임.'); }
+  else if(out.imageSize>=256){ out.batchSize=Math.min(out.batchSize,16); notes.push('이미지 크기가 큰 편이라 배치 크기를 16 이하로 제한함.'); }
+  if(isFinite(diag.imbalance) && diag.imbalance>=1.5 && s.balanceClasses) notes.push('모든 클래스 장수를 작은 클래스 기준으로 맞춰서 학습함.');
+  if(!notes.length) notes.push('현재 설정으로 학습 가능함.');
+  return {settings:out, notes};
+}
+function renderAdjust(adj){
+  $('adjustDiag').textContent=adj.notes.join(' ');
+  $('adjustTable').querySelector('tbody').innerHTML=`
+    <tr><th>실제 클래스 수</th><td>${adj.settings.numClasses}</td></tr>
+    <tr><th>실제 CNN 블록</th><td>${adj.settings.convBlocks}</td></tr>
+    <tr><th>실제 은닉층</th><td>${adj.settings.denseLayers}</td></tr>
+    <tr><th>실제 드롭아웃</th><td>${adj.settings.dropout}</td></tr>
+    <tr><th>실제 배치 크기</th><td>${adj.settings.batchSize}</td></tr>
+    <tr><th>이미지 증강</th><td>${adj.settings.augmentation?'사용':'사용 안 함'}</td></tr>`;
+}
+
+function disposeData(){
+  if(state.trainTensors){ state.trainTensors.xs.dispose(); state.trainTensors.ys.dispose(); state.trainTensors=null; }
+  if(state.valTensors){ state.valTensors.xs.dispose(); state.valTensors.ys.dispose(); state.valTensors=null; }
+}
+async function imageToCanvas(file,size,fitMode){
+  const bitmap=await createImageBitmap(file);
+  const canvas=document.createElement('canvas'); canvas.width=size; canvas.height=size;
+  const ctx=canvas.getContext('2d',{willReadFrequently:true});
+  ctx.fillStyle='#ffffff'; ctx.fillRect(0,0,size,size);
+  const sw=bitmap.width, sh=bitmap.height; let dw,dh,dx,dy;
+  if(fitMode==='cover'){ const scale=Math.max(size/sw,size/sh); dw=sw*scale; dh=sh*scale; dx=(size-dw)/2; dy=(size-dh)/2; }
+  else { const scale=Math.min(size/sw,size/sh); dw=sw*scale; dh=sh*scale; dx=(size-dw)/2; dy=(size-dh)/2; }
+  ctx.drawImage(bitmap,dx,dy,dw,dh); if(bitmap.close) bitmap.close();
+  return canvas;
+}
+function addPreview(canvas, file, target, captionExtra=''){
+  if(!target) return;
+  const wrap=document.createElement('div'); wrap.className='thumb';
+  const img=document.createElement('img'); img.src=canvas.toDataURL('image/png');
+  const cap=document.createElement('div'); cap.className='cap'; cap.textContent=`${file.name} → ${canvas.width}×${canvas.height} RGB${captionExtra}`;
+  wrap.appendChild(img); wrap.appendChild(cap); target.appendChild(wrap);
+}
+async function imageToTensor(file,size,fitMode,previewTarget){
+  const canvas=await imageToCanvas(file,size,fitMode); addPreview(canvas,file,previewTarget);
+  return tf.tidy(()=>tf.browser.fromPixels(canvas,3).toFloat().div(255));
+}
+function augmentTensor(x){
+  return tf.tidy(()=>{
+    let y=x.clone();
+    if(Math.random()<0.5) y=tf.image.flipLeftRight(y.expandDims(0)).squeeze([0]);
+    const brightness=(Math.random()*0.18)-0.09; y=y.add(brightness);
+    const contrast=0.9+Math.random()*0.2; y=y.sub(0.5).mul(contrast).add(0.5);
+    if(Math.random()<0.35) y=y.add(tf.randomNormal(y.shape,0,0.025));
+    return y.clipByValue(0,1);
+  });
+}
+function splitFiles(files,valRatio){
+  const list=shuffle(files.slice());
+  let valCount=Math.max(1,Math.round(list.length*valRatio));
+  if(list.length<5) valCount=1; if(list.length<=2) valCount=0;
+  return {val:list.slice(0,valCount), train:list.slice(valCount)};
+}
+async function makeDataset(settings){
+  setProgress(8,'파일 확인 중',0); await sleepFrame();
+  const counts=settings.classes.map(c=>c.files.length);
+  let targetN=settings.balanceClasses ? Math.min(...counts, settings.maxPerClass) : settings.maxPerClass;
+  const trainItems=[], valItems=[], usedCounts=[];
+  settings.classes.forEach((c,label)=>{
+    const files=shuffle(c.files.slice()).slice(0,Math.min(c.files.length,targetN)); usedCounts[label]=files.length;
+    const sp=splitFiles(files, settings.valRatio);
+    sp.train.forEach(file=>trainItems.push({file,label})); sp.val.forEach(file=>valItems.push({file,label}));
+  });
+  shuffle(trainItems); shuffle(valItems);
+  const trainImages=[], trainLabels=[], valImages=[], valLabels=[];
+  let done=0, total=trainItems.length+valItems.length;
+  setProgress(18,'모든 사진을 같은 형식으로 통일하는 중',1);
+  const augCountBase=trainItems.length<80 ? 2 : 1;
+  for(const item of trainItems){
+    const x=await imageToTensor(item.file,settings.imageSize,settings.fitMode); trainImages.push(x); trainLabels.push(item.label);
+    if(settings.augmentation){ for(let k=0;k<augCountBase;k++){ trainImages.push(augmentTensor(x)); trainLabels.push(item.label); } }
+    done++; if(done%2===0){ setProgress(18+Math.round(done/Math.max(1,total)*24),`형식 통일 중 ${done}/${total}`,1); await sleepFrame(); }
+  }
+  for(const item of valItems){
+    const x=await imageToTensor(item.file,settings.imageSize,settings.fitMode); valImages.push(x); valLabels.push(item.label);
+    done++; if(done%2===0){ setProgress(18+Math.round(done/Math.max(1,total)*24),`검증 이미지 통일 중 ${done}/${total}`,1); await sleepFrame(); }
+  }
+  setProgress(45,'텐서 묶는 중',2); await sleepFrame();
+  if(trainImages.length===0 || valImages.length===0) throw new Error('학습/검증 데이터가 부족함. 각 클래스에 사진을 조금 더 넣어야 함.');
+  const xsTrain=tf.stack(trainImages); const ysTrain=tf.oneHot(tf.tensor1d(trainLabels,'int32'),settings.numClasses);
+  const xsVal=tf.stack(valImages); const ysVal=tf.oneHot(tf.tensor1d(valLabels,'int32'),settings.numClasses);
+  trainImages.forEach(t=>t.dispose()); valImages.forEach(t=>t.dispose());
+  return {train:{xs:xsTrain,ys:ysTrain,count:trainLabels.length},val:{xs:xsVal,ys:ysVal,count:valLabels.length},raw:{trainFiles:trainItems.length,valFiles:valItems.length,usedCounts}};
+}
+function buildModel(s){
+  const model=tf.sequential();
+  for(let i=0;i<s.convBlocks;i++){
+    const filters=Math.min(s.baseFilters*Math.pow(2,i),128);
+    model.add(tf.layers.conv2d({inputShape:i===0?[s.imageSize,s.imageSize,3]:undefined,filters,kernelSize:3,padding:'same',activation:'relu',name:`conv_${i+1}`}));
+    model.add(tf.layers.maxPooling2d({poolSize:2,strides:2,name:`pool_${i+1}`}));
+  }
+  model.add(tf.layers.flatten({name:'flatten'}));
+  for(let i=0;i<s.denseLayers;i++){
+    model.add(tf.layers.dense({units:s.denseUnits,activation:'relu',name:`dense_${i+1}`}));
+    if(s.dropout>0) model.add(tf.layers.dropout({rate:s.dropout,name:`dropout_${i+1}`}));
+  }
+  model.add(tf.layers.dense({units:s.numClasses,activation:'softmax',name:'softmax_output'}));
+  model.compile({optimizer:tf.train.adam(s.lr),loss:'categoricalCrossentropy',metrics:['accuracy']});
+  return model;
+}
+function getMetric(logs,names){ for(const n of names){ if(typeof logs[n]==='number') return logs[n]; } return NaN; }
+function drawChart(canvas,a,b,label){
+  const ctx=canvas.getContext('2d'); const w=canvas.width,h=canvas.height; ctx.clearRect(0,0,w,h); ctx.fillStyle='#fff'; ctx.fillRect(0,0,w,h); ctx.strokeStyle='#ddd'; ctx.lineWidth=1;
+  for(let i=0;i<5;i++){ const y=20+i*(h-50)/4; ctx.beginPath(); ctx.moveTo(40,y); ctx.lineTo(w-10,y); ctx.stroke(); }
+  const values=[...a,...b].filter(Number.isFinite); const max=Math.max(1,...values), min= label==='정확도'?0:Math.min(0,...values); const n=Math.max(a.length,b.length,2);
+  function plot(arr,dash){ ctx.setLineDash(dash?[8,5]:[]); ctx.strokeStyle='#000'; ctx.lineWidth=dash?1.5:2.5; ctx.beginPath(); arr.forEach((v,i)=>{ const x=40+i*(w-60)/(n-1); const y=h-30-((v-min)/(max-min||1))*(h-55); if(i===0)ctx.moveTo(x,y); else ctx.lineTo(x,y); }); ctx.stroke(); ctx.setLineDash([]); }
+  plot(a,false); plot(b,true); ctx.fillStyle='#000'; ctx.font='14px Arial'; ctx.fillText(label+'  실선=학습, 점선=검증',45,18);
+}
+function renderPrediction(probs,target,title='예측 결과'){
+  if(!state.metadata) return;
+  const names=state.metadata.classNames; const maxIdx=probs.indexOf(Math.max(...probs));
+  target.innerHTML=`<h3>${title}: ${names[maxIdx]}</h3>` + probs.map((p,i)=>`<p><b>${names[i]}</b> ${(p*100).toFixed(2)}%</p><div class="bar-line"><span style="width:${Math.max(0,Math.min(100,p*100))}%"></span></div>`).join('');
+}
+async function startTraining(){
+  try{
+    await tf.ready();
+    state.stop=false; state.history={loss:[],val_loss:[],acc:[],val_acc:[]}; disposeData();
+    if(state.model){ state.model.dispose(); state.model=null; }
+    $('downloadModelBtn').disabled=true; $('saveBrowserBtn').disabled=true; $('startBtn').disabled=true; $('stopBtn').disabled=false; $('log').textContent='';
+    drawChart($('lossChart'),[],[],'손실'); drawChart($('accChart'),[],[],'정확도');
+    const rawSettings=readSettings(); const diag=diagnoseData(rawSettings);
+    if(rawSettings.numClasses<2) throw new Error('클래스는 최소 2개 필요함.');
+    if(diag.emptyCount>0) throw new Error('사진이 없는 클래스가 있음. 모든 클래스에 사진을 넣어야 함.');
+    const adj=adjustedSettings(diag,rawSettings); renderAdjust(adj); const s=adj.settings; state.currentSettings=s;
+    log(`클래스: ${s.classNames.join(' / ')}`); log(`입력 크기: ${s.imageSize}×${s.imageSize}, 방식: ${s.fitMode}`);
+    const data=await makeDataset(s); state.trainTensors=data.train; state.valTensors=data.val;
+    log(`학습 원본 ${data.raw.trainFiles}장 → 증강 후 ${data.train.count}개 텐서`); log(`검증 ${data.val.count}개 텐서`);
+    setProgress(55,'모델 구성 중',3); await sleepFrame();
+    const model=buildModel(s); state.model=model; log('모델 구성 완료'); model.summary(null,null,(x)=>log(x));
+    setProgress(62,'레이어 계산과 가중치 조정 시작',4); await sleepFrame();
+    let best=Infinity,patience=0;
+    await model.fit(data.train.xs,data.train.ys,{epochs:s.epochs,batchSize:s.batchSize,shuffle:true,validationData:[data.val.xs,data.val.ys],callbacks:{
+      onBatchEnd:async(batch,logs)=>{ if(batch%2===0){ setProgress(64,`레이어 계산 중: batch ${batch+1}`,4); await sleepFrame(); } if(state.stop) model.stopTraining=true; },
+      onEpochEnd:async(epoch,logs)=>{
+        const loss=getMetric(logs,['loss']), valLoss=getMetric(logs,['val_loss']); const acc=getMetric(logs,['acc','accuracy']), valAcc=getMetric(logs,['val_acc','val_accuracy']);
+        state.history.loss.push(loss); state.history.val_loss.push(valLoss); state.history.acc.push(acc); state.history.val_acc.push(valAcc);
+        drawChart($('lossChart'),state.history.loss,state.history.val_loss,'손실'); drawChart($('accChart'),state.history.acc,state.history.val_acc,'정확도');
+        log(`epoch ${epoch+1}/${s.epochs} | loss=${loss.toFixed(4)} val_loss=${valLoss.toFixed(4)} acc=${(acc*100).toFixed(1)}% val_acc=${(valAcc*100).toFixed(1)}%`);
+        setProgress(64+Math.round(((epoch+1)/s.epochs)*25),`가중치 조정 중: epoch ${epoch+1}/${s.epochs}`,5);
+        if(valLoss<best-0.002){ best=valLoss; patience=0; } else patience++;
+        if(patience>=5){ log('검증 손실이 5회 연속 개선되지 않아 과적합 방지를 위해 조기 종료함.'); model.stopTraining=true; }
+        if(state.stop){ log('사용자가 학습을 중단함.'); model.stopTraining=true; }
+        await sleepFrame();
+      }
+    }});
+    setProgress(94,'검증 결과 확인 중',6); await sleepFrame();
+    const evalOut=model.evaluate(data.val.xs,data.val.ys); const evalVals=await Promise.all(evalOut.map(t=>t.data())); evalOut.forEach(t=>t.dispose());
+    const valLoss=evalVals[0][0], valAcc=evalVals[1][0]; log(`최종 검증 손실 ${valLoss.toFixed(4)}, 검증 정확도 ${(valAcc*100).toFixed(1)}%`);
+    state.metadata={version:'v5-multiclass-workflow',createdAt:new Date().toISOString(),classNames:s.classNames,numClasses:s.numClasses,imageSize:s.imageSize,fitMode:s.fitMode,normalization:'RGB values divided by 255',settings:s,history:state.history};
+    setProgress(100,'완료: 반복 예측과 모델 저장 가능',7); $('downloadModelBtn').disabled=false; $('saveBrowserBtn').disabled=false;
+  } catch(err){ log('오류: '+err.message); setProgress(0,'오류: '+err.message,0); }
+  finally{ $('startBtn').disabled=false; $('stopBtn').disabled=true; }
+}
+async function predictFile(file,previewDiv){
+  if(!state.model || !state.metadata) throw new Error('먼저 모델을 학습하거나 불러와야 함.');
+  if(previewDiv) previewDiv.innerHTML='';
+  const x=await imageToTensor(file,state.metadata.imageSize,state.metadata.fitMode,previewDiv);
+  const batch=x.expandDims(0); const pred=state.model.predict(batch); const arr=Array.from(await pred.data());
+  pred.dispose(); batch.dispose(); x.dispose();
+  return arr;
+}
+async function predictSelected(){
+  try{ if(!state.testFiles.length) throw new Error('예측할 사진을 먼저 업로드해야 함.'); const file=state.testFiles[state.selectedTestIndex]; const probs=await predictFile(file,$('testPreview')); renderPrediction(probs,$('predResult'),file.name); }
+  catch(e){ $('predResult').innerHTML='<div class="warn">'+e.message+'</div>'; }
+}
+async function predictAll(){
+  try{
+    if(!state.testFiles.length) throw new Error('예측할 사진을 먼저 업로드해야 함.');
+    const box=$('batchPredictions'); box.innerHTML='전체 예측 중...'; await sleepFrame();
+    const rows=[];
+    for(let i=0;i<state.testFiles.length;i++){
+      const file=state.testFiles[i]; const probs=await predictFile(file,null); const names=state.metadata.classNames; const maxIdx=probs.indexOf(Math.max(...probs));
+      rows.push(`<tr><td>${i+1}</td><td>${file.name}</td><td><b>${names[maxIdx]}</b></td><td>${(probs[maxIdx]*100).toFixed(2)}%</td></tr>`);
+      if(i%2===0){ box.innerHTML=`진행 중 ${i+1}/${state.testFiles.length}`; await sleepFrame(); }
+    }
+    box.innerHTML=`<table><thead><tr><th>#</th><th>파일</th><th>예측</th><th>확신도</th></tr></thead><tbody>${rows.join('')}</tbody></table>`;
+  }catch(e){ $('batchPredictions').innerHTML='<div class="warn">'+e.message+'</div>'; }
+}
+function renderFilePicker(files,target,selectedIndex,onSelect){
+  target.innerHTML='';
+  files.forEach((file,i)=>{
+    const wrap=document.createElement('div'); wrap.className='thumb selectable'+(i===selectedIndex?' selected':'');
+    const img=document.createElement('img'); img.src=URL.createObjectURL(file); img.onload=()=>URL.revokeObjectURL(img.src);
+    const cap=document.createElement('div'); cap.className='cap'; cap.textContent=file.name;
+    const btn=document.createElement('button'); btn.className='btn tiny secondary'; btn.textContent='선택';
+    btn.addEventListener('click',()=>onSelect(i)); wrap.addEventListener('click',()=>onSelect(i));
+    wrap.appendChild(img); wrap.appendChild(cap); wrap.appendChild(btn); target.appendChild(wrap);
+  });
+}
+function updateTestFiles(){ state.testFiles=Array.from($('testFiles').files||[]).filter(f=>f.type.startsWith('image/')); state.selectedTestIndex=0; renderFilePicker(state.testFiles,$('testFileGrid'),state.selectedTestIndex,(i)=>{state.selectedTestIndex=i; renderFilePicker(state.testFiles,$('testFileGrid'),i,arguments.callee);}); }
+function updateWorkflowFiles(){ state.workflowFiles=Array.from($('workflowFiles').files||[]).filter(f=>f.type.startsWith('image/')); state.selectedWorkflowIndex=0; renderWorkflowPicker(); }
+function renderWorkflowPicker(){ renderFilePicker(state.workflowFiles,$('workflowFileGrid'),state.selectedWorkflowIndex,(i)=>{state.selectedWorkflowIndex=i; renderWorkflowPicker();}); }
+function renderTestPicker(){ renderFilePicker(state.testFiles,$('testFileGrid'),state.selectedTestIndex,(i)=>{state.selectedTestIndex=i; renderTestPicker();}); }
+function updateTestFilesFixed(){ state.testFiles=Array.from($('testFiles').files||[]).filter(f=>f.type.startsWith('image/')); state.selectedTestIndex=0; renderTestPicker(); }
+
+function tensorShapeText(t){ return '['+t.shape.join(', ')+']'; }
+function layerKind(layer){
+  const name=layer.getClassName();
+  if(name==='Conv2D') return '컨볼루션: 작은 필터가 이미지를 훑으며 특징을 계산함.';
+  if(name==='MaxPooling2D') return '풀링: 중요한 값만 남기고 크기를 줄임.';
+  if(name==='Flatten') return 'Flatten: 2차원 특징맵을 긴 벡터로 펼침.';
+  if(name==='Dense') return layer.name.includes('softmax')?'Softmax: 각 클래스 확률로 변환함.':'Dense: 특징값에 가중치를 곱해 판단함.';
+  if(name==='Dropout') return 'Dropout: 학습 때 일부 연결을 꺼서 과적합을 줄임. 예측 때는 꺼지지 않음.';
+  return name;
+}
+function renderWorkflowNodes(fileName,shapeRows,probs){
+  const names=state.metadata.classNames; const maxIdx=probs.indexOf(Math.max(...probs));
+  $('workflowNodes').innerHTML=`
+    <div class="node done"><b>1. 입력</b><span class="small">${fileName}</span></div>
+    <div class="node done"><b>2. 전처리</b><span class="mono">[${state.metadata.imageSize}, ${state.metadata.imageSize}, 3]</span><br><span class="small">RGB, 0~1 정규화</span></div>
+    <div class="node done"><b>3. CNN</b><span class="small">Conv/Pooling 반복</span><br><span class="mono">${shapeRows.filter(r=>r.kind.includes('컨볼루션')||r.kind.includes('풀링')).length}개 계산 단계</span></div>
+    <div class="node done"><b>4. Flatten</b><span class="small">특징맵을 벡터로 펼침</span></div>
+    <div class="node done"><b>5. Dense</b><span class="small">가중치 합산</span><br><span class="mono">z=w·x+b</span></div>
+    <div class="node done"><b>6. Softmax</b><span class="small">최종 예측</span><br><b>${names[maxIdx]}</b> ${(probs[maxIdx]*100).toFixed(1)}%</div>`;
+}
+async function runWorkflow(){
+  try{
+    if(!state.model || !state.metadata) throw new Error('먼저 모델을 학습하거나 불러와야 함.');
+    if(!state.workflowFiles.length) throw new Error('워크플로우용 사진을 업로드해야 함.');
+    const file=state.workflowFiles[state.selectedWorkflowIndex];
+    $('workflowPreview').innerHTML=''; $('featureMaps').innerHTML=''; $('shapeBox').innerHTML=''; $('workflowResult').innerHTML='계산 중...'; await sleepFrame();
+    const x=await imageToTensor(file,state.metadata.imageSize,state.metadata.fitMode,$('workflowPreview'));
+    let current=x.expandDims(0); const shapeRows=[]; let firstConvClone=null;
+    for(const layer of state.model.layers){
+      const next=layer.apply(current,{training:false});
+      if(current!==x) current.dispose();
+      current=next;
+      const row={name:layer.name,type:layer.getClassName(),shape:tensorShapeText(current),kind:layerKind(layer)}; shapeRows.push(row);
+      if(!firstConvClone && layer.getClassName()==='Conv2D') firstConvClone=current.clone();
+      await sleepFrame();
+    }
+    const probs=Array.from(await current.data());
+    current.dispose(); x.dispose();
+    $('shapeBox').innerHTML=shapeRows.map(r=>`<div class="shape-item"><b>${r.name}</b><p class="mono">${r.shape}</p><p class="small">${r.kind}</p></div>`).join('');
+    if(firstConvClone){ await renderFeatureMaps(firstConvClone,$('featureMaps')); firstConvClone.dispose(); }
+    renderWorkflowNodes(file.name,shapeRows,probs);
+    renderWorkflowResult(probs,shapeRows);
+  }catch(e){ $('workflowResult').innerHTML='<div class="warn">'+e.message+'</div>'; }
+}
+async function renderFeatureMaps(tensor4,target){
+  let fmap=tf.tidy(()=>tensor4.squeeze());
+  const shape=fmap.shape; if(shape.length!==3){ fmap.dispose(); return; }
+  const [h,w,c]=shape; const maps=Math.min(c,16);
+  for(let i=0;i<maps;i++){
+    const slice=tf.tidy(()=>fmap.slice([0,0,i],[h,w,1]).squeeze());
+    const vals=await slice.data(); let min=Infinity,max=-Infinity; vals.forEach(v=>{ if(v<min)min=v; if(v>max)max=v; });
+    const cv=document.createElement('canvas'); cv.width=w; cv.height=h; const ctx=cv.getContext('2d'); const img=ctx.createImageData(w,h);
+    for(let k=0;k<vals.length;k++){ const g=Math.round(((vals[k]-min)/(max-min||1))*255); img.data[k*4]=g; img.data[k*4+1]=g; img.data[k*4+2]=g; img.data[k*4+3]=255; }
+    ctx.putImageData(img,0,0); const wrap=document.createElement('div'); wrap.className='thumb'; wrap.appendChild(cv); const cap=document.createElement('div'); cap.className='cap'; cap.textContent=`conv feature ${i+1}`; wrap.appendChild(cap); target.appendChild(wrap); slice.dispose();
+  }
+  fmap.dispose();
+}
+function renderWorkflowResult(probs,shapeRows){
+  const names=state.metadata.classNames; const maxIdx=probs.indexOf(Math.max(...probs));
+  let html=`<h3>최종 예측: ${names[maxIdx]}</h3><p>사진은 전처리 후 CNN 레이어를 지나면서 특징맵으로 바뀌고, Flatten 뒤 Dense 레이어에서 퍼셉트론처럼 가중치 합산을 한다.</p><p class="mono">z = w₁x₁ + w₂x₂ + ... + b</p>`;
+  html += probs.map((p,i)=>`<p><b>${names[i]}</b> ${(p*100).toFixed(2)}%</p><div class="bar-line"><span style="width:${Math.max(0,Math.min(100,p*100))}%"></span></div>`).join('');
+  html += `<p class="small">마지막 출력 형태: ${shapeRows[shapeRows.length-1]?.shape || ''}. 클래스가 ${names.length}개라서 확률도 ${names.length}개가 나온다.</p>`;
+  $('workflowResult').innerHTML=html;
+}
+async function downloadModel(){
+  if(!state.model || !state.metadata) return;
+  await state.model.save('downloads://cnn-multiclass-model');
+  const blob=new Blob([JSON.stringify(state.metadata,null,2)],{type:'application/json'});
+  const a=document.createElement('a'); a.href=URL.createObjectURL(blob); a.download='cnn-multiclass-metadata.json'; a.click(); setTimeout(()=>URL.revokeObjectURL(a.href),2000);
+  log('모델과 메타데이터 다운로드 요청 완료');
+}
+async function saveBrowser(){
+  if(!state.model || !state.metadata) return;
+  await state.model.save('indexeddb://cnn-multiclass-model'); localStorage.setItem('cnn-multiclass-metadata',JSON.stringify(state.metadata)); log('브라우저 IndexedDB에 모델 저장 완료');
+}
+async function loadModel(){
+  try{
+    const files=Array.from($('loadModelFiles').files||[]); const jsonFiles=files.filter(f=>f.name.endsWith('.json'));
+    const metaFile=jsonFiles.find(f=>f.name.toLowerCase().includes('metadata')); const modelFile=jsonFiles.find(f=>!f.name.toLowerCase().includes('metadata')); const binFiles=files.filter(f=>f.name.endsWith('.bin'));
+    if(!modelFile || !binFiles.length || !metaFile) throw new Error('model.json, weights.bin, metadata.json을 모두 선택해야 함.');
+    if(state.model){ state.model.dispose(); state.model=null; }
+    state.model=await tf.loadLayersModel(tf.io.browserFiles([modelFile,...binFiles])); state.metadata=JSON.parse(await metaFile.text()); applySettings(state.metadata);
+    $('downloadModelBtn').disabled=false; $('saveBrowserBtn').disabled=false; $('loadStatus').className='ok'; $('loadStatus').textContent=`모델 불러오기 완료: ${state.metadata.classNames.join(' / ')} / ${state.metadata.imageSize}×${state.metadata.imageSize}`; log('모델 파일 불러오기 완료');
+  }catch(e){ $('loadStatus').className='warn'; $('loadStatus').textContent=e.message; }
+}
+async function tryLoadBrowser(){
+  try{ const meta=localStorage.getItem('cnn-multiclass-metadata'); if(!meta) return; state.model=await tf.loadLayersModel('indexeddb://cnn-multiclass-model'); state.metadata=JSON.parse(meta); applySettings(state.metadata); $('downloadModelBtn').disabled=false; $('saveBrowserBtn').disabled=false; $('loadStatus').className='ok'; $('loadStatus').textContent='브라우저에 저장된 모델을 자동으로 불러왔음.'; }catch(e){ console.warn(e); }
+}
+function wire(){
+  initSteps(); renderClassInputs(); drawChart($('lossChart'),[],[],'손실'); drawChart($('accChart'),[],[],'정확도'); setProgress(0,'대기 중',0);
+  document.querySelectorAll('.tab-btn').forEach(btn=>btn.addEventListener('click',()=>{ document.querySelectorAll('.tab-btn').forEach(b=>b.classList.remove('active')); document.querySelectorAll('.tab').forEach(t=>t.classList.remove('active')); btn.classList.add('active'); $(btn.dataset.tab).classList.add('active'); }));
+  $('addClassBtn').addEventListener('click',addClass);
+  ['imageSize','fitMode','maxPerClass','valRatio','balanceClasses','autoAdjust','convBlocks','baseFilters','denseLayers','denseUnits','dropout','lr','epochs','batchSize','augmentation'].forEach(id=>$(id).addEventListener('change',quickDiagnose));
+  $('startBtn').addEventListener('click',startTraining); $('stopBtn').addEventListener('click',()=>{ state.stop=true; $('stopBtn').disabled=true; log('중단 요청됨. 현재 배치가 끝나면 멈춤.'); });
+  $('testFiles').addEventListener('change',updateTestFilesFixed); $('testSelectedBtn').addEventListener('click',predictSelected); $('testAllBtn').addEventListener('click',predictAll);
+  $('workflowFiles').addEventListener('change',updateWorkflowFiles); $('workflowBtn').addEventListener('click',runWorkflow);
+  $('downloadModelBtn').addEventListener('click',downloadModel); $('saveBrowserBtn').addEventListener('click',saveBrowser); $('loadModelBtn').addEventListener('click',loadModel);
+  tryLoadBrowser();
+}
+window.addEventListener('load',wire);
+</script>
+</body>
+</html>
